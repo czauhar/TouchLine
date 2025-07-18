@@ -22,9 +22,19 @@ async def lifespan(app: FastAPI):
     # Create database tables
     create_tables()
     print("📊 Database tables created")
+    
+    # Start alert engine in background
+    try:
+        asyncio.create_task(alert_engine.start_monitoring())
+        print("🚨 Alert engine started")
+    except Exception as e:
+        print(f"❌ Failed to start alert engine: {e}")
+    
     yield
+    
     # Shutdown
     print("🛑 TouchLine Backend shutting down...")
+    alert_engine.stop_monitoring()
 
 # Create FastAPI app
 app = FastAPI(

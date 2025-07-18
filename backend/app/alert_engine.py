@@ -40,6 +40,9 @@ class AlertEngine:
             
             for match in live_matches:
                 await self.check_match_alerts(db, match)
+            
+            # Close the database session
+            db.close()
                 
         except Exception as e:
             print(f"❌ Error checking alerts: {e}")
@@ -63,6 +66,7 @@ class AlertEngine:
                         
         except Exception as e:
             print(f"❌ Error checking match alerts: {e}")
+            # Don't close db here as it's passed from parent
     
     def _alert_applies_to_match(self, alert: Alert, match: Match) -> bool:
         """Check if alert applies to the given match"""

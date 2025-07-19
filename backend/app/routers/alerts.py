@@ -6,25 +6,44 @@ from datetime import datetime
 
 router = APIRouter(prefix="/api/alerts", tags=["alerts"])
 
+from pydantic import BaseModel
+import json
+
+class AlertCreate(BaseModel):
+    name: str
+    conditions: str  # JSON string with alert conditions
+
 @router.post("/")
 async def create_alert(
-    name: str,
-    team: str,
-    alert_type: str,
-    threshold: float,
-    description: str = "",
-    user_phone: str = "",
+    alert_data: AlertCreate,
     db: Session = Depends(get_db)
 ):
-    """Create a new alert"""
+    """Create a new alert with advanced conditions"""
     try:
+        # Parse the conditions JSON
+        conditions = json.loads(alert_data.conditions)
+        
+        # Extract basic info for the alert
+        team = conditions.get('team', '')
+        condition_type = conditions.get('condition_type', 'goals')
+        operator = conditions.get('operator', '>=')
+        value = conditions.get('value', 0)
+        time_window = conditions.get('time_window')
+        description = conditions.get('description', '')
+        
+        # Create a readable condition string
+        condition_str = f"{team} {condition_type} {operator} {value}"
+        if time_window:
+            condition_str += f" (within {time_window} minutes)"
+        
         alert = Alert(
-            name=name,
+            name=alert_data.name,
             team=team,
-            alert_type=alert_type,
-            threshold=threshold,
-            condition=f"{team} {alert_type} >= {threshold}",
-            user_phone=user_phone,
+            alert_type=condition_type,
+            threshold=float(value) if isinstance(value, (int, float)) else 0,
+            condition=condition_str,
+            time_window=int(time_window) if time_window else None,
+            user_phone="",  # Will be added later
             is_active=True,
             created_at=datetime.utcnow()
         )
@@ -43,6 +62,8 @@ async def create_alert(
             "is_active": alert.is_active,
             "created_at": alert.created_at.isoformat()
         }
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="Invalid conditions format")
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Error creating alert: {str(e)}")

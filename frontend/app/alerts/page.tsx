@@ -12,27 +12,76 @@ interface Alert {
   created_at: string
 }
 
+interface Match {
+  external_id: string
+  home_team: string
+  away_team: string
+  league: string
+  home_score: number
+  away_score: number
+  status: string
+  elapsed: number | null
+  venue: string | null
+}
+
+interface Team {
+  name: string
+  league: string
+}
+
 export default function AlertsPage() {
   const [alerts, setAlerts] = useState<Alert[]>([])
+  const [matches, setMatches] = useState<Match[]>([])
+  const [teams, setTeams] = useState<Team[]>([])
+  const [leagues, setLeagues] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const [showCreateForm, setShowCreateForm] = useState(false)
-  const [showAdvancedForm, setShowAdvancedForm] = useState(false)
+  const [selectedMatch, setSelectedMatch] = useState<Match | null>(null)
+  
+  // Alert form state
   const [newAlert, setNewAlert] = useState({
     name: '',
-    conditions: ''
+    team: '',
+    league: '',
+    condition_type: 'goals',
+    operator: '>=',
+    value: '',
+    time_window: '',
+    description: ''
   })
 
   useEffect(() => {
-    fetchAlerts()
+    fetchData()
   }, [])
 
-  const fetchAlerts = async () => {
+  const fetchData = async () => {
     try {
-      const response = await api.getAlerts()
-      const data = await response.json()
-      setAlerts(data.alerts || [])
+      const [alertsResponse, matchesResponse] = await Promise.all([
+        api.getAlerts(),
+        api.getLiveMatches()
+      ])
+      
+      const alertsData = await alertsResponse.json()
+      const matchesData = await matchesResponse.json()
+      
+      setAlerts(alertsData.alerts || [])
+      setMatches(matchesData.matches || [])
+      
+      // Extract unique teams and leagues
+      const allTeams: Team[] = []
+      const allLeagues: Set<string> = new Set()
+      
+      matchesData.matches?.forEach((match: Match) => {
+        allLeagues.add(match.league)
+        allTeams.push({ name: match.home_team, league: match.league })
+        allTeams.push({ name: match.away_team, league: match.league })
+      })
+      
+      setTeams(allTeams)
+      setLeagues(Array.from(allLeagues))
+      
     } catch (error) {
-      console.error('Error fetching alerts:', error)
+      console.error('Error fetching data:', error)
     } finally {
       setLoading(false)
     }
@@ -41,24 +90,61 @@ export default function AlertsPage() {
   const createAlert = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
-      const response = await api.createAlert(newAlert)
+      const alertData = {
+        name: newAlert.name,
+        conditions: JSON.stringify({
+          team: newAlert.team,
+          league: newAlert.league,
+          condition_type: newAlert.condition_type,
+          operator: newAlert.operator,
+          value: parseFloat(newAlert.value) || newAlert.value,
+          time_window: newAlert.time_window,
+          description: newAlert.description
+        })
+      }
+      
+      const response = await api.createAlert(alertData)
       
       if (response.ok) {
-        setNewAlert({ name: '', conditions: '' })
+        setNewAlert({
+          name: '',
+          team: '',
+          league: '',
+          condition_type: 'goals',
+          operator: '>=',
+          value: '',
+          time_window: '',
+          description: ''
+        })
         setShowCreateForm(false)
-        fetchAlerts()
+        setSelectedMatch(null)
+        fetchData()
       }
     } catch (error) {
       console.error('Error creating alert:', error)
     }
   }
 
+  const createQuickAlert = (match: Match, condition: string) => {
+    setSelectedMatch(match)
+    setNewAlert({
+      name: `${match.home_team} vs ${match.away_team} - ${condition}`,
+      team: match.home_team,
+      league: match.league,
+      condition_type: 'goals',
+      operator: '>=',
+      value: '1',
+      time_window: '',
+      description: `Quick alert for ${condition}`
+    })
+    setShowCreateForm(true)
+  }
+
   const toggleAlert = async (id: number) => {
     try {
       const response = await api.toggleAlert(id)
-      
       if (response.ok) {
-        fetchAlerts()
+        fetchData()
       }
     } catch (error) {
       console.error('Error toggling alert:', error)
@@ -68,13 +154,45 @@ export default function AlertsPage() {
   const deleteAlert = async (id: number) => {
     try {
       const response = await api.deleteAlert(id)
-      
       if (response.ok) {
-        fetchAlerts()
+        fetchData()
       }
     } catch (error) {
       console.error('Error deleting alert:', error)
     }
+  }
+
+  const getMatchStatusColor = (status: string) => {
+    switch (status) {
+      case '1H': return 'text-green-400'
+      case '2H': return 'text-yellow-400'
+      case 'HT': return 'text-blue-400'
+      case 'FT': return 'text-gray-400'
+      case 'P': return 'text-purple-400'
+      default: return 'text-gray-400'
+    }
+  }
+
+  const getMatchStatusIcon = (status: string) => {
+    switch (status) {
+      case '1H': return '⚽'
+      case '2H': return '⚽'
+      case 'HT': return '⏸️'
+      case 'FT': return '🏁'
+      case 'P': return '⏰'
+      default: return '⏰'
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500 mx-auto"></div>
+          <p className="text-gray-400 mt-4">Loading alerts and live matches...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -99,9 +217,9 @@ export default function AlertsPage() {
               </div>
             </div>
             <h1 className="text-6xl font-black bg-gradient-to-r from-red-400 via-pink-400 to-purple-400 bg-clip-text text-transparent mb-6">
-              Alert Management
+              Intelligent Alerts
             </h1>
-            <p className="text-2xl text-gray-300 mb-10">Create and manage your intelligent soccer alerts</p>
+            <p className="text-2xl text-gray-300 mb-10">Create smart alerts based on live match data and advanced analytics</p>
             
             <div className="flex flex-col sm:flex-row gap-6 justify-center">
               <button
@@ -111,17 +229,7 @@ export default function AlertsPage() {
                 <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl blur opacity-50 group-hover:opacity-75 transition duration-500"></div>
                 <div className="relative bg-gradient-to-r from-blue-600 to-purple-600 text-white px-10 py-5 rounded-2xl hover:from-blue-700 hover:to-purple-700 transition-all duration-300 font-bold text-xl transform hover:-translate-y-2 flex items-center justify-center">
                   <span className="mr-3">➕</span>
-                  Create Alert
-                </div>
-              </button>
-              <button
-                onClick={() => setShowAdvancedForm(true)}
-                className="group relative"
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl blur opacity-50 group-hover:opacity-75 transition duration-500"></div>
-                <div className="relative bg-gradient-to-r from-purple-600 to-pink-600 text-white px-10 py-5 rounded-2xl hover:from-purple-700 hover:to-pink-700 transition-all duration-300 font-bold text-xl transform hover:-translate-y-2 flex items-center justify-center">
-                  <span className="mr-3">⚡</span>
-                  Advanced Alerts
+                  Create Smart Alert
                 </div>
               </button>
             </div>
@@ -150,17 +258,17 @@ export default function AlertsPage() {
           </div>
 
           {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
             <div className="group relative">
               <div className="absolute inset-0 bg-gradient-to-r from-green-500 to-emerald-500 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-500"></div>
-              <div className="relative bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-800 p-8 hover:bg-gray-900/90 transition-all duration-300">
+              <div className="relative bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-800 p-6 hover:bg-gray-900/90 transition-all duration-300">
                 <div className="flex items-center">
-                  <div className="p-4 rounded-2xl bg-gradient-to-r from-green-500 to-emerald-500">
-                    <span className="text-3xl text-white">🔔</span>
+                  <div className="p-3 rounded-xl bg-gradient-to-r from-green-500 to-emerald-500">
+                    <span className="text-2xl text-white">🔔</span>
                   </div>
-                  <div className="ml-6">
+                  <div className="ml-4">
                     <p className="text-sm font-medium text-gray-400">Total Alerts</p>
-                    <p className="text-4xl font-black text-gray-200">{alerts.length}</p>
+                    <p className="text-3xl font-black text-gray-200">{alerts.length}</p>
                   </div>
                 </div>
               </div>
@@ -168,14 +276,14 @@ export default function AlertsPage() {
             
             <div className="group relative">
               <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-500"></div>
-              <div className="relative bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-800 p-8 hover:bg-gray-900/90 transition-all duration-300">
+              <div className="relative bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-800 p-6 hover:bg-gray-900/90 transition-all duration-300">
                 <div className="flex items-center">
-                  <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-500 to-cyan-500">
-                    <span className="text-3xl text-white">🟢</span>
+                  <div className="p-3 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500">
+                    <span className="text-2xl text-white">🟢</span>
                   </div>
-                  <div className="ml-6">
+                  <div className="ml-4">
                     <p className="text-sm font-medium text-gray-400">Active Alerts</p>
-                    <p className="text-4xl font-black text-gray-200">{alerts.filter(a => a.is_active).length}</p>
+                    <p className="text-3xl font-black text-gray-200">{alerts.filter(a => a.is_active).length}</p>
                   </div>
                 </div>
               </div>
@@ -183,26 +291,108 @@ export default function AlertsPage() {
             
             <div className="group relative">
               <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-500"></div>
-              <div className="relative bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-800 p-8 hover:bg-gray-900/90 transition-all duration-300">
+              <div className="relative bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-800 p-6 hover:bg-gray-900/90 transition-all duration-300">
                 <div className="flex items-center">
-                  <div className="p-4 rounded-2xl bg-gradient-to-r from-purple-500 to-pink-500">
-                    <span className="text-3xl text-white">⚡</span>
+                  <div className="p-3 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500">
+                    <span className="text-2xl text-white">⚽</span>
                   </div>
-                  <div className="ml-6">
-                    <p className="text-sm font-medium text-gray-400">Advanced Alerts</p>
-                    <p className="text-4xl font-black text-gray-200">0</p>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-400">Live Matches</p>
+                    <p className="text-3xl font-black text-gray-200">{matches.length}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="group relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-500"></div>
+              <div className="relative bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-800 p-6 hover:bg-gray-900/90 transition-all duration-300">
+                <div className="flex items-center">
+                  <div className="p-3 rounded-xl bg-gradient-to-r from-yellow-500 to-orange-500">
+                    <span className="text-2xl text-white">🏆</span>
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-400">Leagues</p>
+                    <p className="text-3xl font-black text-gray-200">{leagues.length}</p>
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Simple Alerts Section */}
+          {/* Live Matches for Quick Alerts */}
           <div className="relative mb-12">
             <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-purple-600/20 rounded-3xl blur-xl"></div>
             <div className="relative bg-gray-900/80 backdrop-blur-xl rounded-3xl border border-gray-800 p-8">
               <h2 className="text-3xl font-black bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent mb-6">
-                Simple Alerts
+                Live Matches - Quick Alerts
+              </h2>
+              
+              {matches.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {matches.slice(0, 9).map((match) => (
+                    <div key={match.external_id} className="group relative">
+                      <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-500"></div>
+                      <div className="relative bg-gray-900/80 backdrop-blur-xl rounded-2xl border border-gray-800 p-6 hover:bg-gray-900/90 transition-all duration-300">
+                        {/* Match Header */}
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center">
+                            <span className={`text-2xl mr-2 ${getMatchStatusColor(match.status)}`}>
+                              {getMatchStatusIcon(match.status)}
+                            </span>
+                            <span className={`text-sm font-bold ${getMatchStatusColor(match.status)}`}>
+                              {match.status} {match.elapsed && `(${match.elapsed}')`}
+                            </span>
+                          </div>
+                          <span className="text-xs text-gray-500 bg-gray-800 px-2 py-1 rounded">
+                            {match.league}
+                          </span>
+                        </div>
+                        
+                        {/* Teams and Score */}
+                        <div className="text-center mb-4">
+                          <div className="text-lg font-bold text-gray-200 mb-1">{match.home_team}</div>
+                          <div className="text-3xl font-black bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                            {match.home_score} - {match.away_score}
+                          </div>
+                          <div className="text-lg font-bold text-gray-200 mt-1">{match.away_team}</div>
+                        </div>
+                        
+                        {/* Quick Alert Buttons */}
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            onClick={() => createQuickAlert(match, 'Goal')}
+                            className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-3 py-2 rounded-lg text-sm font-bold hover:from-green-700 hover:to-emerald-700 transition-all duration-300"
+                          >
+                            🥅 Goal Alert
+                          </button>
+                          <button
+                            onClick={() => createQuickAlert(match, 'Comeback')}
+                            className="bg-gradient-to-r from-red-600 to-pink-600 text-white px-3 py-2 rounded-lg text-sm font-bold hover:from-red-700 hover:to-pink-700 transition-all duration-300"
+                          >
+                            🔄 Comeback
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <div className="text-6xl mb-4">⚽</div>
+                  <h3 className="text-2xl font-bold text-gray-200 mb-2">No Live Matches</h3>
+                  <p className="text-gray-400">Check back later for live matches to create alerts!</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Your Alerts */}
+          <div className="relative mb-12">
+            <div className="absolute inset-0 bg-gradient-to-r from-red-600/20 to-pink-600/20 rounded-3xl blur-xl"></div>
+            <div className="relative bg-gray-900/80 backdrop-blur-xl rounded-3xl border border-gray-800 p-8">
+              <h2 className="text-3xl font-black bg-gradient-to-r from-red-400 to-pink-400 bg-clip-text text-transparent mb-6">
+                Your Alerts
               </h2>
               
               {alerts.length > 0 ? (
@@ -250,90 +440,175 @@ export default function AlertsPage() {
             </div>
           </div>
 
-          {/* Advanced Alerts Section */}
-          <div className="relative mb-12">
-            <div className="absolute inset-0 bg-gradient-to-r from-purple-600/20 to-pink-600/20 rounded-3xl blur-xl"></div>
-            <div className="relative bg-gray-900/80 backdrop-blur-xl rounded-3xl border border-gray-800 p-8">
-              <h2 className="text-3xl font-black bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent mb-6">
-                Advanced Alerts
-              </h2>
-              <div className="text-center py-12">
-                <div className="text-6xl mb-4">⚡</div>
-                <h3 className="text-2xl font-bold text-gray-200 mb-2">Coming Soon</h3>
-                <p className="text-gray-400">Advanced multi-condition alerts with AND/OR logic</p>
-              </div>
-            </div>
-          </div>
-
           {/* Create Alert Modal */}
           {showCreateForm && (
             <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-              <div className="relative">
+              <div className="relative max-w-2xl w-full mx-4">
                 <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-purple-600/20 rounded-3xl blur-xl"></div>
-                <div className="relative bg-gray-900/80 backdrop-blur-xl rounded-3xl border border-gray-800 p-8 max-w-md w-full mx-4">
-                  <h3 className="text-2xl font-bold text-gray-200 mb-6">Create New Alert</h3>
-                  <form onSubmit={createAlert} className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-400 mb-2">
-                        Alert Name
-                      </label>
-                      <input
-                        type="text"
-                        value={newAlert.name}
-                        onChange={(e) => setNewAlert({ ...newAlert, name: e.target.value })}
-                        className="w-full bg-gray-800/50 border border-gray-700 rounded-xl px-4 py-3 text-gray-200 focus:outline-none focus:border-blue-500"
-                        required
-                      />
+                <div className="relative bg-gray-900/80 backdrop-blur-xl rounded-3xl border border-gray-800 p-8">
+                  <h3 className="text-3xl font-bold text-gray-200 mb-6">Create Smart Alert</h3>
+                  
+                  {selectedMatch && (
+                    <div className="mb-6 p-4 bg-gray-800/50 rounded-xl border border-gray-700">
+                      <h4 className="text-lg font-bold text-gray-200 mb-2">Selected Match:</h4>
+                      <div className="text-center">
+                        <div className="text-xl font-bold text-gray-200">{selectedMatch.home_team}</div>
+                        <div className="text-2xl font-black bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                          {selectedMatch.home_score} - {selectedMatch.away_score}
+                        </div>
+                        <div className="text-xl font-bold text-gray-200">{selectedMatch.away_team}</div>
+                        <div className="text-sm text-gray-400 mt-1">{selectedMatch.league}</div>
+                      </div>
                     </div>
+                  )}
+                  
+                  <form onSubmit={createAlert} className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-400 mb-2">
+                          Alert Name
+                        </label>
+                        <input
+                          type="text"
+                          value={newAlert.name}
+                          onChange={(e) => setNewAlert({ ...newAlert, name: e.target.value })}
+                          className="w-full bg-gray-800/50 border border-gray-700 rounded-xl px-4 py-3 text-gray-200 focus:outline-none focus:border-blue-500"
+                          required
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-400 mb-2">
+                          League
+                        </label>
+                        <select
+                          value={newAlert.league}
+                          onChange={(e) => setNewAlert({ ...newAlert, league: e.target.value })}
+                          className="w-full bg-gray-800/50 border border-gray-700 rounded-xl px-4 py-3 text-gray-200 focus:outline-none focus:border-blue-500"
+                        >
+                          <option value="">Select League</option>
+                          {leagues.map((league) => (
+                            <option key={league} value={league}>{league}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-400 mb-2">
+                          Team
+                        </label>
+                        <select
+                          value={newAlert.team}
+                          onChange={(e) => setNewAlert({ ...newAlert, team: e.target.value })}
+                          className="w-full bg-gray-800/50 border border-gray-700 rounded-xl px-4 py-3 text-gray-200 focus:outline-none focus:border-blue-500"
+                          required
+                        >
+                          <option value="">Select Team</option>
+                          {teams
+                            .filter(team => !newAlert.league || team.league === newAlert.league)
+                            .map((team) => (
+                              <option key={team.name} value={team.name}>{team.name}</option>
+                            ))}
+                        </select>
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-400 mb-2">
+                          Condition Type
+                        </label>
+                        <select
+                          value={newAlert.condition_type}
+                          onChange={(e) => setNewAlert({ ...newAlert, condition_type: e.target.value })}
+                          className="w-full bg-gray-800/50 border border-gray-700 rounded-xl px-4 py-3 text-gray-200 focus:outline-none focus:border-blue-500"
+                        >
+                          <option value="goals">Goals</option>
+                          <option value="score_difference">Score Difference</option>
+                          <option value="time_based">Time Based</option>
+                          <option value="momentum">Momentum</option>
+                          <option value="pressure">Pressure</option>
+                        </select>
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-400 mb-2">
+                          Operator
+                        </label>
+                        <select
+                          value={newAlert.operator}
+                          onChange={(e) => setNewAlert({ ...newAlert, operator: e.target.value })}
+                          className="w-full bg-gray-800/50 border border-gray-700 rounded-xl px-4 py-3 text-gray-200 focus:outline-none focus:border-blue-500"
+                        >
+                          <option value=">=">Greater than or equal (≥)</option>
+                          <option value="&gt;">Greater than (&gt;)</option>
+                          <option value="==">Equals (=)</option>
+                          <option value="&lt;">Less than (&lt;)</option>
+                          <option value="<=">Less than or equal (≤)</option>
+                        </select>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-400 mb-2">
+                          Value
+                        </label>
+                        <input
+                          type="number"
+                          step="0.1"
+                          value={newAlert.value}
+                          onChange={(e) => setNewAlert({ ...newAlert, value: e.target.value })}
+                          className="w-full bg-gray-800/50 border border-gray-700 rounded-xl px-4 py-3 text-gray-200 focus:outline-none focus:border-blue-500"
+                          required
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-400 mb-2">
+                          Time Window (minutes, optional)
+                        </label>
+                        <input
+                          type="number"
+                          value={newAlert.time_window}
+                          onChange={(e) => setNewAlert({ ...newAlert, time_window: e.target.value })}
+                          className="w-full bg-gray-800/50 border border-gray-700 rounded-xl px-4 py-3 text-gray-200 focus:outline-none focus:border-blue-500"
+                          placeholder="e.g., 10"
+                        />
+                      </div>
+                    </div>
+                    
                     <div>
                       <label className="block text-sm font-medium text-gray-400 mb-2">
-                        Conditions
+                        Description
                       </label>
                       <textarea
-                        value={newAlert.conditions}
-                        onChange={(e) => setNewAlert({ ...newAlert, conditions: e.target.value })}
-                        className="w-full bg-gray-800/50 border border-gray-700 rounded-xl px-4 py-3 text-gray-200 focus:outline-none focus:border-blue-500 h-24"
-                        required
+                        value={newAlert.description}
+                        onChange={(e) => setNewAlert({ ...newAlert, description: e.target.value })}
+                        className="w-full bg-gray-800/50 border border-gray-700 rounded-xl px-4 py-3 text-gray-200 focus:outline-none focus:border-blue-500 h-20"
+                        placeholder="Optional description of this alert..."
                       />
                     </div>
+                    
                     <div className="flex gap-4">
                       <button
                         type="submit"
-                        className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-300 font-bold"
+                        className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-4 rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-300 font-bold text-lg"
                       >
                         Create Alert
                       </button>
                       <button
                         type="button"
-                        onClick={() => setShowCreateForm(false)}
-                        className="flex-1 bg-gray-700 text-gray-300 px-6 py-3 rounded-xl hover:bg-gray-600 transition-all duration-300 font-bold"
+                        onClick={() => {
+                          setShowCreateForm(false)
+                          setSelectedMatch(null)
+                        }}
+                        className="flex-1 bg-gray-700 text-gray-300 px-6 py-4 rounded-xl hover:bg-gray-600 transition-all duration-300 font-bold text-lg"
                       >
                         Cancel
                       </button>
                     </div>
                   </form>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Advanced Alert Modal */}
-          {showAdvancedForm && (
-            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-purple-600/20 to-pink-600/20 rounded-3xl blur-xl"></div>
-                <div className="relative bg-gray-900/80 backdrop-blur-xl rounded-3xl border border-gray-800 p-8 max-w-md w-full mx-4">
-                  <h3 className="text-2xl font-bold text-gray-200 mb-6">Advanced Alerts</h3>
-                  <div className="text-center py-8">
-                    <div className="text-4xl mb-4">⚡</div>
-                    <p className="text-gray-400 mb-6">Advanced multi-condition alerts coming soon!</p>
-                    <button
-                      onClick={() => setShowAdvancedForm(false)}
-                      className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-3 rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all duration-300 font-bold"
-                    >
-                      Close
-                    </button>
-                  </div>
                 </div>
               </div>
             </div>

@@ -78,12 +78,18 @@ export default function Home() {
               <div className="text-sm text-gray-600">Today's Matches</div>
             </div>
           </div>
-          <div className="mt-4 text-center">
+          <div className="mt-4 flex space-x-3 justify-center">
             <Link 
               href="/matches"
               className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
             >
-              View All Matches
+              View Matches
+            </Link>
+            <Link 
+              href="/alerts"
+              className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+            >
+              Manage Alerts
             </Link>
           </div>
         </div>

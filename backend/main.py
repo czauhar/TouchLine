@@ -10,7 +10,7 @@ from app.models import Base
 from app.sports_api import sports_api
 from app.services import MatchService, AlertService, UserService
 from app.sms_service import sms_service
-from app.alert_engine import alert_engine
+from app.alert_engine import match_monitor
 
 # Load environment variables
 load_dotenv()
@@ -25,7 +25,7 @@ async def lifespan(app: FastAPI):
     
     # Start alert engine in background
     try:
-        asyncio.create_task(alert_engine.start_monitoring())
+        asyncio.create_task(match_monitor.start_monitoring())
         print("🚨 Alert engine started")
     except Exception as e:
         print(f"❌ Failed to start alert engine: {e}")
@@ -34,7 +34,7 @@ async def lifespan(app: FastAPI):
     
     # Shutdown
     print("🛑 TouchLine Backend shutting down...")
-    alert_engine.stop_monitoring()
+    match_monitor.stop_monitoring()
 
 # Create FastAPI app
 app = FastAPI(
@@ -68,7 +68,7 @@ async def api_status():
         "database": "configured",
         "sms_service": "configured" if sms_service.is_configured else "not_configured",
         "sports_api": "configured" if sports_api.api_key else "not_configured",
-        "alert_engine": "running" if alert_engine.is_running else "stopped"
+        "alert_engine": "running" if match_monitor.running else "stopped"
     }
 
 # Sports API endpoints
@@ -235,9 +235,9 @@ async def test_sms(to_number: str, message: str = "TouchLine SMS test"):
 @app.post("/api/alert-engine/start")
 async def start_alert_engine():
     """Start the alert monitoring engine"""
-    if not alert_engine.is_running:
+    if not match_monitor.running:
         # Start in background
-        asyncio.create_task(alert_engine.start_monitoring())
+        asyncio.create_task(match_monitor.start_monitoring())
         return {"message": "Alert engine started", "status": "running"}
     else:
         return {"message": "Alert engine already running", "status": "running"}
@@ -245,7 +245,7 @@ async def start_alert_engine():
 @app.post("/api/alert-engine/stop")
 async def stop_alert_engine():
     """Stop the alert monitoring engine"""
-    alert_engine.stop_monitoring()
+    match_monitor.stop_monitoring()
     return {"message": "Alert engine stopped", "status": "stopped"}
 
 @app.get("/api/alert-engine/status")

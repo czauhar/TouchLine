@@ -147,12 +147,20 @@ export default function MatchesPage() {
             <h1 className="text-3xl font-bold text-gray-900">Live Matches</h1>
             <p className="text-gray-600 mt-2">Real-time sports data and statistics</p>
           </div>
-          <Link 
-            href="/"
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Back to Dashboard
-          </Link>
+          <div className="flex space-x-3">
+            <Link 
+              href="/alerts"
+              className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+            >
+              Manage Alerts
+            </Link>
+            <Link 
+              href="/"
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Back to Dashboard
+            </Link>
+          </div>
         </div>
 
         {/* Tab Navigation */}

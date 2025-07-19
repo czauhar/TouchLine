@@ -1,25 +1,14 @@
-from fastapi import Request, HTTPException
+from fastapi import Request
 from fastapi.middleware.cors import CORSMiddleware
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
-from slowapi.errors import RateLimitExceeded
 import time
 import logging
-from typing import List
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Rate limiter
-limiter = Limiter(key_func=get_remote_address)
-
 def setup_middleware(app):
     """Setup all middleware for the FastAPI application"""
-    
-    # Add rate limiter
-    app.state.limiter = limiter
-    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
     
     # CORS middleware
     app.add_middleware(
@@ -67,22 +56,7 @@ def setup_middleware(app):
         
         return response
     
-    # Rate limiting for specific endpoints
-    @app.middleware("http")
-    async def rate_limit_middleware(request: Request, call_next):
-        # Apply stricter rate limiting to sensitive endpoints
-        if request.url.path.startswith("/api/auth"):
-            # 5 requests per minute for auth endpoints
-            if limiter.is_rate_limited(request, "5/minute"):
-                raise HTTPException(status_code=429, detail="Too many requests")
-        
-        elif request.url.path.startswith("/api/alerts"):
-            # 10 requests per minute for alert endpoints
-            if limiter.is_rate_limited(request, "10/minute"):
-                raise HTTPException(status_code=429, detail="Too many requests")
-        
-        response = await call_next(request)
-        return response
+
 
 class SecurityMiddleware:
     """Additional security middleware"""

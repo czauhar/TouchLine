@@ -113,86 +113,86 @@ export default function AlertsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Header */}
         <div className="text-center mb-12">
-          <div className="flex justify-center mb-6">
-            <div className="bg-gradient-to-r from-red-600 to-pink-600 p-4 rounded-2xl shadow-2xl">
-              <span className="text-4xl">🚨</span>
+          <div className="flex justify-center mb-8">
+            <div className="bg-gradient-to-r from-red-500 to-pink-500 p-6 rounded-3xl glow-red hover-glow-red transition-all duration-500">
+              <span className="text-6xl">🚨</span>
             </div>
           </div>
-          <h1 className="text-5xl font-bold bg-gradient-to-r from-gray-900 via-red-800 to-pink-800 bg-clip-text text-transparent mb-4">
+          <h1 className="text-6xl font-black bg-gradient-to-r from-red-400 via-pink-400 to-purple-400 bg-clip-text text-transparent text-glow-red mb-6">
             Alert Management
           </h1>
-          <p className="text-xl text-gray-600 mb-8">Create and manage your intelligent soccer alerts</p>
+          <p className="text-2xl text-gray-300 mb-10">Create and manage your intelligent soccer alerts</p>
           
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <div className="flex flex-col sm:flex-row gap-6 justify-center">
             <button
               onClick={() => setShowCreateForm(true)}
-              className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-300 font-semibold text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-1 flex items-center justify-center"
+              className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-10 py-5 rounded-2xl hover:from-blue-700 hover:to-purple-700 transition-all duration-300 font-bold text-xl glow-blue hover-glow-blue transform hover:-translate-y-2 flex items-center justify-center"
             >
-              <span className="mr-2">➕</span>
+              <span className="mr-3">➕</span>
               Create Alert
             </button>
             <button
               onClick={() => setShowAdvancedForm(true)}
-              className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-8 py-4 rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all duration-300 font-semibold text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-1 flex items-center justify-center"
+              className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-10 py-5 rounded-2xl hover:from-purple-700 hover:to-pink-700 transition-all duration-300 font-bold text-xl glow-purple hover-glow-purple transform hover:-translate-y-2 flex items-center justify-center"
             >
-              <span className="mr-2">⚡</span>
+              <span className="mr-3">⚡</span>
               Advanced Alerts
             </button>
           </div>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+          <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl border border-gray-700 p-8 hover:bg-gray-800/70 transition-all duration-300 hover-glow-green">
             <div className="flex items-center">
-              <div className="p-3 rounded-xl bg-gradient-to-r from-green-500 to-emerald-500">
-                <span className="text-2xl text-white">🔔</span>
+              <div className="p-4 rounded-2xl bg-gradient-to-r from-green-500 to-emerald-500 glow-green">
+                <span className="text-3xl text-white">🔔</span>
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Total Alerts</p>
-                <p className="text-3xl font-bold text-gray-900">{alerts.length}</p>
+              <div className="ml-6">
+                <p className="text-sm font-medium text-gray-400">Total Alerts</p>
+                <p className="text-4xl font-black text-gray-200">{alerts.length}</p>
               </div>
             </div>
           </div>
           
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300">
+          <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl border border-gray-700 p-8 hover:bg-gray-800/70 transition-all duration-300 hover-glow-cyan">
             <div className="flex items-center">
-              <div className="p-3 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500">
-                <span className="text-2xl text-white">🟢</span>
+              <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-500 to-cyan-500 glow-cyan">
+                <span className="text-3xl text-white">🟢</span>
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Active Alerts</p>
-                <p className="text-3xl font-bold text-gray-900">{alerts.filter(a => a.is_active).length}</p>
+              <div className="ml-6">
+                <p className="text-sm font-medium text-gray-400">Active Alerts</p>
+                <p className="text-4xl font-black text-gray-200">{alerts.filter(a => a.is_active).length}</p>
               </div>
             </div>
           </div>
           
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300">
+          <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl border border-gray-700 p-8 hover:bg-gray-800/70 transition-all duration-300 hover-glow-purple">
             <div className="flex items-center">
-              <div className="p-3 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500">
-                <span className="text-2xl text-white">⚡</span>
+              <div className="p-4 rounded-2xl bg-gradient-to-r from-purple-500 to-pink-500 glow-purple">
+                <span className="text-3xl text-white">⚡</span>
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Advanced Alerts</p>
-                <p className="text-3xl font-bold text-gray-900">0</p>
+              <div className="ml-6">
+                <p className="text-sm font-medium text-gray-400">Advanced Alerts</p>
+                <p className="text-4xl font-black text-gray-200">0</p>
               </div>
             </div>
           </div>
         </div>
 
         {/* Navigation */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
-          <Link href="/" className="bg-gradient-to-r from-gray-600 to-gray-700 text-white px-6 py-3 rounded-xl hover:from-gray-700 hover:to-gray-800 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-1">
+        <div className="flex flex-col sm:flex-row gap-6 justify-center mb-10">
+          <Link href="/" className="bg-gradient-to-r from-gray-600 to-gray-700 text-white px-8 py-4 rounded-2xl hover:from-gray-700 hover:to-gray-800 transition-all duration-300 font-bold text-lg glow-gray hover-glow-gray transform hover:-translate-y-2">
             🏠 Dashboard
           </Link>
-          <Link href="/matches" className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-6 py-3 rounded-xl hover:from-blue-700 hover:to-cyan-700 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-1">
+          <Link href="/matches" className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-8 py-4 rounded-2xl hover:from-blue-700 hover:to-cyan-700 transition-all duration-300 font-bold text-lg glow-cyan hover-glow-cyan transform hover:-translate-y-2">
             🏟️ Live Matches
           </Link>
-          <span className="bg-gradient-to-r from-red-600 to-pink-600 text-white px-6 py-3 rounded-xl font-semibold shadow-lg">
+          <span className="bg-gradient-to-r from-red-600 to-pink-600 text-white px-8 py-4 rounded-2xl font-bold text-lg glow-red">
             🚨 Alerts
           </span>
         </div>

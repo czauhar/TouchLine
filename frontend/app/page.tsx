@@ -37,21 +37,21 @@ export default function Home() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black">
       {/* Hero Section */}
       <div className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 opacity-10"></div>
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 via-purple-600/20 to-cyan-600/20 animate-gradient"></div>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16">
           <div className="text-center">
-            <div className="flex justify-center mb-6">
-              <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-4 rounded-2xl shadow-2xl">
-                <span className="text-6xl">⚽</span>
+            <div className="flex justify-center mb-8">
+              <div className="bg-gradient-to-r from-blue-500 to-cyan-500 p-6 rounded-3xl glow-cyan hover-glow-cyan transition-all duration-500">
+                <span className="text-8xl">⚽</span>
               </div>
             </div>
-            <h1 className="text-6xl font-bold bg-gradient-to-r from-gray-900 via-blue-800 to-purple-800 bg-clip-text text-transparent mb-6">
+            <h1 className="text-7xl font-black bg-gradient-to-r from-blue-400 via-cyan-400 to-purple-400 bg-clip-text text-transparent text-glow-cyan mb-8">
               TouchLine
             </h1>
-            <p className="text-xl text-gray-600 mb-12 max-w-2xl mx-auto leading-relaxed">
+            <p className="text-2xl text-gray-300 mb-16 max-w-3xl mx-auto leading-relaxed">
               Real-time sports alerts and intelligent notifications powered by advanced analytics
             </p>
           </div>
@@ -62,94 +62,96 @@ export default function Home() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
         {/* System Status Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300">
+          <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl border border-gray-700 p-6 hover:bg-gray-800/70 transition-all duration-300 hover-glow-green">
             <div className="flex items-center">
-              <div className={`p-3 rounded-xl ${isBackendConnected ? 'bg-green-100' : 'bg-red-100'}`}>
-                <span className={`text-2xl ${isBackendConnected ? 'text-green-600' : 'text-red-600'}`}>
+              <div className={`p-4 rounded-2xl ${isBackendConnected ? 'bg-green-500/20 glow-green' : 'bg-red-500/20 glow-red'}`}>
+                <span className={`text-3xl ${isBackendConnected ? 'text-green-400' : 'text-red-400'}`}>
                   {isBackendConnected ? '🔌' : '❌'}
                 </span>
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Backend</p>
-                <p className={`text-lg font-semibold ${isBackendConnected ? 'text-green-600' : 'text-red-600'}`}>
+                <p className="text-sm font-medium text-gray-400">Backend</p>
+                <p className={`text-xl font-bold ${isBackendConnected ? 'text-green-400 text-glow-green' : 'text-red-400 text-glow-red'}`}>
                   {isBackendConnected ? 'Connected' : 'Disconnected'}
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300">
+          <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl border border-gray-700 p-6 hover:bg-gray-800/70 transition-all duration-300 hover-glow-blue">
             <div className="flex items-center">
-              <div className="p-3 rounded-xl bg-blue-100">
-                <span className="text-2xl text-blue-600">🌐</span>
+              <div className="p-4 rounded-2xl bg-blue-500/20 glow-blue">
+                <span className="text-3xl text-blue-400">🌐</span>
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Frontend</p>
-                <p className="text-lg font-semibold text-blue-600">Running</p>
+                <p className="text-sm font-medium text-gray-400">Frontend</p>
+                <p className="text-xl font-bold text-blue-400 text-glow-blue">Running</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300">
+          <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl border border-gray-700 p-6 hover:bg-gray-800/70 transition-all duration-300 hover-glow-green">
             <div className="flex items-center">
-              <div className="p-3 rounded-xl bg-green-100">
-                <span className="text-2xl text-green-600">💾</span>
+              <div className="p-4 rounded-2xl bg-green-500/20 glow-green">
+                <span className="text-3xl text-green-400">💾</span>
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Database</p>
-                <p className="text-lg font-semibold text-green-600">Configured</p>
+                <p className="text-sm font-medium text-gray-400">Database</p>
+                <p className="text-xl font-bold text-green-400 text-glow-green">Configured</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300">
+          <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl border border-gray-700 p-6 hover:bg-gray-800/70 transition-all duration-300 hover-glow-cyan">
             <div className="flex items-center">
-              <div className="p-3 rounded-xl bg-yellow-100">
-                <span className="text-2xl text-yellow-600">📱</span>
+              <div className="p-4 rounded-2xl bg-cyan-500/20 glow-cyan">
+                <span className="text-3xl text-cyan-400">📱</span>
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">SMS Service</p>
-                <p className="text-lg font-semibold text-yellow-600">Not configured</p>
+                <p className="text-sm font-medium text-gray-400">SMS Service</p>
+                <p className="text-xl font-bold text-cyan-400 text-glow-cyan">Not configured</p>
               </div>
             </div>
           </div>
         </div>
 
         {/* Quick Stats */}
-        <div className="bg-white rounded-3xl shadow-xl border border-gray-100 p-8 mb-12">
-          <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold text-gray-900 mb-2">Live Statistics</h2>
-            <p className="text-gray-600">Real-time match data and analytics</p>
+        <div className="bg-gray-800/50 backdrop-blur-sm rounded-3xl border border-gray-700 p-10 mb-12 glow-purple">
+          <div className="text-center mb-10">
+            <h2 className="text-4xl font-black bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent text-glow-purple mb-4">
+              Live Statistics
+            </h2>
+            <p className="text-xl text-gray-300">Real-time match data and analytics</p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mb-10">
             <div className="text-center">
-              <div className="bg-gradient-to-r from-red-500 to-pink-500 p-6 rounded-2xl mb-4">
-                <span className="text-4xl text-white font-bold">{liveMatchesCount}</span>
+              <div className="bg-gradient-to-r from-red-500 to-pink-500 p-8 rounded-3xl mb-6 glow-red hover-glow-red transition-all duration-500">
+                <span className="text-6xl text-white font-black">{liveMatchesCount}</span>
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Live Matches</h3>
-              <p className="text-gray-600">Currently in progress</p>
+              <h3 className="text-2xl font-bold text-gray-200 mb-3">Live Matches</h3>
+              <p className="text-gray-400">Currently in progress</p>
             </div>
             
             <div className="text-center">
-              <div className="bg-gradient-to-r from-blue-500 to-cyan-500 p-6 rounded-2xl mb-4">
-                <span className="text-4xl text-white font-bold">{todaysMatchesCount}</span>
+              <div className="bg-gradient-to-r from-blue-500 to-cyan-500 p-8 rounded-3xl mb-6 glow-cyan hover-glow-cyan transition-all duration-500">
+                <span className="text-6xl text-white font-black">{todaysMatchesCount}</span>
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Today's Matches</h3>
-              <p className="text-gray-600">Scheduled for today</p>
+              <h3 className="text-2xl font-bold text-gray-200 mb-3">Today's Matches</h3>
+              <p className="text-gray-400">Scheduled for today</p>
             </div>
           </div>
           
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <div className="flex flex-col sm:flex-row gap-6 justify-center">
             <Link 
               href="/matches"
-              className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-300 font-semibold text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-1"
+              className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-10 py-5 rounded-2xl hover:from-blue-700 hover:to-purple-700 transition-all duration-300 font-bold text-xl glow-blue hover-glow-blue transform hover:-translate-y-2"
             >
               🏟️ View Live Matches
             </Link>
             <Link 
               href="/alerts"
-              className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-8 py-4 rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all duration-300 font-semibold text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-1"
+              className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-10 py-5 rounded-2xl hover:from-green-700 hover:to-emerald-700 transition-all duration-300 font-bold text-xl glow-green hover-glow-green transform hover:-translate-y-2"
             >
               🔔 Manage Alerts
             </Link>
@@ -158,53 +160,55 @@ export default function Home() {
 
         {/* Features Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300">
+          <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl border border-gray-700 p-8 hover:bg-gray-800/70 transition-all duration-300 hover-glow-purple">
             <div className="text-center">
-              <div className="bg-gradient-to-r from-purple-500 to-pink-500 p-4 rounded-xl inline-block mb-4">
-                <span className="text-3xl text-white">⚡</span>
+              <div className="bg-gradient-to-r from-purple-500 to-pink-500 p-6 rounded-2xl inline-block mb-6 glow-purple">
+                <span className="text-4xl text-white">⚡</span>
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Real-time Alerts</h3>
-              <p className="text-gray-600">Get instant notifications for goals, momentum shifts, and key events</p>
+              <h3 className="text-2xl font-bold text-gray-200 mb-4">Real-time Alerts</h3>
+              <p className="text-gray-400 leading-relaxed">Get instant notifications for goals, momentum shifts, and key events</p>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300">
+          <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl border border-gray-700 p-8 hover:bg-gray-800/70 transition-all duration-300 hover-glow-cyan">
             <div className="text-center">
-              <div className="bg-gradient-to-r from-blue-500 to-cyan-500 p-4 rounded-xl inline-block mb-4">
-                <span className="text-3xl text-white">📊</span>
+              <div className="bg-gradient-to-r from-blue-500 to-cyan-500 p-6 rounded-2xl inline-block mb-6 glow-cyan">
+                <span className="text-4xl text-white">📊</span>
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Advanced Analytics</h3>
-              <p className="text-gray-600">xG, momentum, pressure index, and win probability calculations</p>
+              <h3 className="text-2xl font-bold text-gray-200 mb-4">Advanced Analytics</h3>
+              <p className="text-gray-400 leading-relaxed">xG, momentum, pressure index, and win probability calculations</p>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300">
+          <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl border border-gray-700 p-8 hover:bg-gray-800/70 transition-all duration-300 hover-glow-green">
             <div className="text-center">
-              <div className="bg-gradient-to-r from-green-500 to-emerald-500 p-4 rounded-xl inline-block mb-4">
-                <span className="text-3xl text-white">🤖</span>
+              <div className="bg-gradient-to-r from-green-500 to-emerald-500 p-6 rounded-2xl inline-block mb-6 glow-green">
+                <span className="text-4xl text-white">🤖</span>
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Smart Logic</h3>
-              <p className="text-gray-600">Multi-condition alerts with AND/OR logic and time windows</p>
+              <h3 className="text-2xl font-bold text-gray-200 mb-4">Smart Logic</h3>
+              <p className="text-gray-400 leading-relaxed">Multi-condition alerts with AND/OR logic and time windows</p>
             </div>
           </div>
         </div>
 
         {/* Footer */}
         <div className="text-center">
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
-            <h3 className="text-2xl font-bold text-gray-900 mb-4">Phase 1: Foundation & Architecture</h3>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center text-gray-600">
-              <div className="flex items-center">
-                <span className="mr-2">🐍</span>
-                <span>Backend: Python FastAPI</span>
+          <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl border border-gray-700 p-10 glow-blue">
+            <h3 className="text-3xl font-black bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent text-glow-blue mb-6">
+              Phase 1: Foundation & Architecture
+            </h3>
+            <div className="flex flex-col sm:flex-row gap-6 justify-center items-center text-gray-300">
+              <div className="flex items-center bg-gray-700/50 px-4 py-2 rounded-xl">
+                <span className="mr-3 text-xl">🐍</span>
+                <span className="font-semibold">Backend: Python FastAPI</span>
               </div>
-              <div className="flex items-center">
-                <span className="mr-2">⚛️</span>
-                <span>Frontend: Next.js</span>
+              <div className="flex items-center bg-gray-700/50 px-4 py-2 rounded-xl">
+                <span className="mr-3 text-xl">⚛️</span>
+                <span className="font-semibold">Frontend: Next.js</span>
               </div>
-              <div className="flex items-center">
-                <span className="mr-2">📱</span>
-                <span>SMS: Twilio Integration</span>
+              <div className="flex items-center bg-gray-700/50 px-4 py-2 rounded-xl">
+                <span className="mr-3 text-xl">📱</span>
+                <span className="font-semibold">SMS: Twilio Integration</span>
               </div>
             </div>
           </div>

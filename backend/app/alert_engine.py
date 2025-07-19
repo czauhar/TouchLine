@@ -10,6 +10,7 @@ from .sms_service import sms_service
 from .database import get_db
 from .models import Match, Alert, AlertHistory
 from .metrics_calculator import metrics_calculator, MatchMetrics
+from .advanced_conditions import advanced_evaluator, AdvancedAlertCondition
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -168,6 +169,29 @@ class MatchMonitor:
                 
         except Exception as e:
             logger.error(f"Error evaluating alert {alert_id}: {e}")
+    
+    async def evaluate_advanced_alert(self, alert_condition: AdvancedAlertCondition, match_data: Dict, metrics: MatchMetrics):
+        """Evaluate an advanced alert condition with multi-condition logic"""
+        try:
+            # Check if alert was already triggered for this match
+            match_info = sports_api.format_match_data(match_data)
+            if await self.alert_already_triggered(alert_condition.alert_id, match_info.get("external_id")):
+                return False, ""
+            
+            # Evaluate the advanced condition
+            triggered, trigger_message = await advanced_evaluator.evaluate_advanced_condition(
+                alert_condition, match_data, metrics
+            )
+            
+            # Send alert if triggered
+            if triggered:
+                await self.send_alert(alert_condition.alert_id, None, match_info, trigger_message)
+            
+            return triggered, trigger_message
+                
+        except Exception as e:
+            logger.error(f"Error evaluating advanced alert {alert_condition.alert_id}: {e}")
+            return False, ""
     
     def evaluate_goals_alert(self, condition: AlertCondition, match_info: Dict) -> tuple[bool, str]:
         """Evaluate goals-based alert"""

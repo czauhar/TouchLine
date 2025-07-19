@@ -36,13 +36,14 @@ class Alert(Base):
     __tablename__ = "alerts"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     name = Column(String)
-    alert_type = Column(String)  # goal, possession, shot, etc.
+    alert_type = Column(String)  # goals, xg, momentum, pressure, win_probability, etc.
+    team = Column(String)  # team name for the alert
+    condition = Column(String)  # condition description
     threshold = Column(Float)
-    condition = Column(String)  # greater_than, less_than, equals
-    team_filter = Column(String, nullable=True)
-    league_filter = Column(String, nullable=True)
+    time_window = Column(Integer, nullable=True)  # minutes for time-based alerts
+    user_phone = Column(String, nullable=True)  # phone number for SMS
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     
@@ -54,10 +55,11 @@ class AlertHistory(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     alert_id = Column(Integer, ForeignKey("alerts.id"))
-    match_id = Column(Integer, ForeignKey("matches.id"))
+    match_id = Column(String)  # external match ID from sports API
     triggered_at = Column(DateTime, default=datetime.utcnow)
-    message = Column(Text)
-    sent_via = Column(String)  # sms, email
-    status = Column(String)  # sent, failed
+    trigger_message = Column(Text)  # what triggered the alert
+    sms_sent = Column(Boolean, default=False)
+    sms_message_id = Column(String, nullable=True)  # Twilio message SID
+    match_data = Column(Text, nullable=True)  # JSON string of match data
     
     alert = relationship("Alert", back_populates="history") 

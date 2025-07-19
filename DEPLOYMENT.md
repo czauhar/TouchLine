@@ -1,5 +1,22 @@
 # 🚀 TouchLine Simple Deployment
 
+## Development Workflow
+
+### Local Development
+- **Your local machine** for development and testing
+- Fast iteration, debugging, and feature development
+- No risk of breaking production
+
+### Production Pipeline
+- **GitHub** → **DigitalOcean droplet** (auto-deploy)
+- When you push to `main` branch, it updates production
+- Clean, stable Ubuntu 24.04 LTS environment
+
+### Workflow
+1. **Develop locally** → test changes
+2. **Push to GitHub** → triggers production update
+3. **SSH to droplet** → update and restart (or automated)
+
 ## Quick Deploy
 
 SSH into your DigitalOcean droplet and run:
@@ -44,10 +61,27 @@ TWILIO_PHONE_NUMBER=your_number
 RAPIDAPI_KEY=your_key
 ```
 
-## Updates
+## Production Updates
 
+### Quick Update
 ```bash
+# SSH to droplet
+ssh root@your-droplet-ip
+
+# Update and restart
 cd /var/www/touchline
 git pull origin main
 pm2 restart all
-``` 
+```
+
+### Check Status
+```bash
+pm2 status
+pm2 logs
+```
+
+## System Requirements
+
+- **Ubuntu 24.04 LTS** (recommended) or Ubuntu 22.04 LTS
+- **1 vCPU, 1GB RAM** minimum (DigitalOcean droplet)
+- **Git** access to repository 

@@ -10,10 +10,10 @@ load_dotenv()
 class SportsAPIService:
     def __init__(self):
         self.api_key = os.getenv("API_FOOTBALL_KEY")
-        self.base_url = "https://api-football-v1.p.rapidapi.com/v3"
+        # Direct API-Football endpoint (no longer RapidAPI)
+        self.base_url = "https://v3.football.api-sports.io"
         self.headers = {
-            "X-RapidAPI-Key": self.api_key,
-            "X-RapidAPI-Host": "api-football-v1.p.rapidapi.com"
+            "x-apisports-key": self.api_key
         }
         
     async def get_live_matches(self) -> List[Dict]:

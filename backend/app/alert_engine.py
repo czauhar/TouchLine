@@ -1,177 +1,312 @@
 import asyncio
-from datetime import datetime
-from typing import List, Dict
-from sqlalchemy.orm import Session
+import logging
+from datetime import datetime, timedelta
+from typing import List, Dict, Optional, Callable
+from dataclasses import dataclass
+from enum import Enum
+
+from .sports_api import sports_api
+from .sms_service import sms_service
 from .database import get_db
 from .models import Match, Alert, AlertHistory
-from .services import AlertService
-from .sms_service import sms_service
+from .metrics_calculator import metrics_calculator, MatchMetrics
 
-class AlertEngine:
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+class AlertType(Enum):
+    GOALS = "goals"
+    SCORE_DIFFERENCE = "score_difference"
+    POSSESSION = "possession"
+    TIME_BASED = "time_based"
+    CARDS = "cards"
+    XG = "xg"
+    MOMENTUM = "momentum"
+    PRESSURE = "pressure"
+    WIN_PROBABILITY = "win_probability"
+    CUSTOM = "custom"
+
+@dataclass
+class AlertCondition:
+    alert_id: int
+    alert_type: AlertType
+    team: str
+    condition: str
+    threshold: float
+    time_window: Optional[int] = None  # minutes
+    user_phone: str = ""
+
+class MatchMonitor:
     def __init__(self):
-        self.is_running = False
-        self.check_interval = 30  # Check every 30 seconds
-    
-    async def start_monitoring(self):
-        """Start the alert monitoring service"""
-        self.is_running = True
-        print("🚨 Alert Engine started - monitoring for triggers...")
+        self.running = False
+        self.monitoring_interval = 60  # seconds
+        self.active_matches = {}  # fixture_id -> match_data
+        self.alert_conditions = {}  # alert_id -> AlertCondition
         
-        while self.is_running:
+    async def start_monitoring(self):
+        """Start the background monitoring service"""
+        self.running = True
+        logger.info("🚀 Starting Match Monitor...")
+        
+        while self.running:
             try:
-                await self.check_alerts()
-                await asyncio.sleep(self.check_interval)
+                await self.monitor_live_matches()
+                await asyncio.sleep(self.monitoring_interval)
             except Exception as e:
-                print(f"❌ Alert Engine error: {e}")
-                await asyncio.sleep(60)  # Wait longer on error
+                logger.error(f"Error in match monitoring: {e}")
+                await asyncio.sleep(30)  # Shorter sleep on error
     
-    def stop_monitoring(self):
-        """Stop the alert monitoring service"""
-        self.is_running = False
-        print("🛑 Alert Engine stopped")
+    async def stop_monitoring(self):
+        """Stop the background monitoring service"""
+        self.running = False
+        logger.info("🛑 Stopping Match Monitor...")
     
-    async def check_alerts(self):
-        """Check all active matches for alert triggers"""
+    async def monitor_live_matches(self):
+        """Monitor all live matches and evaluate alerts"""
+        logger.info("📊 Monitoring live matches...")
+        
+        # Fetch live matches
+        live_matches = await sports_api.get_live_matches()
+        
+        # Update active matches
+        for match_data in live_matches:
+            fixture_id = match_data.get("fixture", {}).get("id")
+            if fixture_id:
+                self.active_matches[fixture_id] = match_data
+        
+        # Remove finished matches
+        finished_matches = []
+        for fixture_id, match_data in self.active_matches.items():
+            status = match_data.get("fixture", {}).get("status", {}).get("short", "")
+            if status in ["FT", "AET", "PEN"]:  # Full Time, Extra Time, Penalties
+                finished_matches.append(fixture_id)
+        
+        for fixture_id in finished_matches:
+            del self.active_matches[fixture_id]
+        
+        # Load active alerts
+        await self.load_active_alerts()
+        
+        # Evaluate alerts for each active match
+        for fixture_id, match_data in self.active_matches.items():
+            await self.evaluate_match_alerts(fixture_id, match_data)
+    
+    async def load_active_alerts(self):
+        """Load all active alerts from database"""
+        try:
+            db = next(get_db())
+            alerts = db.query(Alert).filter(Alert.is_active == True).all()
+            
+            self.alert_conditions = {}
+            for alert in alerts:
+                condition = AlertCondition(
+                    alert_id=alert.id,
+                    alert_type=AlertType(alert.alert_type),
+                    team=alert.team,
+                    condition=alert.condition,
+                    threshold=alert.threshold,
+                    time_window=alert.time_window,
+                    user_phone=alert.user_phone
+                )
+                self.alert_conditions[alert.id] = condition
+                
+            logger.info(f"📋 Loaded {len(self.alert_conditions)} active alerts")
+            
+        except Exception as e:
+            logger.error(f"Error loading alerts: {e}")
+    
+    async def evaluate_match_alerts(self, fixture_id: int, match_data: Dict):
+        """Evaluate all alerts for a specific match"""
+        match_info = sports_api.format_match_data(match_data)
+        
+        # Calculate advanced metrics
+        metrics = metrics_calculator.calculate_all_metrics(match_data)
+        
+        for alert_id, condition in self.alert_conditions.items():
+            # Check if this alert applies to this match
+            if self.matches_alert_criteria(match_info, condition):
+                await self.evaluate_single_alert(alert_id, condition, match_info, metrics)
+    
+    def matches_alert_criteria(self, match_info: Dict, condition: AlertCondition) -> bool:
+        """Check if a match matches the alert criteria"""
+        home_team = match_info.get("home_team", "").lower()
+        away_team = match_info.get("away_team", "").lower()
+        target_team = condition.team.lower()
+        
+        return target_team in home_team or target_team in away_team
+    
+    async def evaluate_single_alert(self, alert_id: int, condition: AlertCondition, match_info: Dict, metrics: MatchMetrics):
+        """Evaluate a single alert condition"""
+        try:
+            # Check if alert was already triggered for this match
+            if await self.alert_already_triggered(alert_id, match_info.get("external_id")):
+                return
+            
+            # Evaluate based on alert type
+            triggered = False
+            trigger_message = ""
+            
+            if condition.alert_type == AlertType.GOALS:
+                triggered, trigger_message = self.evaluate_goals_alert(condition, match_info)
+            elif condition.alert_type == AlertType.SCORE_DIFFERENCE:
+                triggered, trigger_message = self.evaluate_score_difference_alert(condition, match_info)
+            elif condition.alert_type == AlertType.TIME_BASED:
+                triggered, trigger_message = self.evaluate_time_based_alert(condition, match_info)
+            elif condition.alert_type == AlertType.XG:
+                triggered, trigger_message = self.evaluate_xg_alert(condition, metrics)
+            elif condition.alert_type == AlertType.MOMENTUM:
+                triggered, trigger_message = self.evaluate_momentum_alert(condition, metrics)
+            elif condition.alert_type == AlertType.PRESSURE:
+                triggered, trigger_message = self.evaluate_pressure_alert(condition, metrics)
+            elif condition.alert_type == AlertType.WIN_PROBABILITY:
+                triggered, trigger_message = self.evaluate_win_probability_alert(condition, metrics)
+            
+            # Send alert if triggered
+            if triggered:
+                await self.send_alert(alert_id, condition, match_info, trigger_message)
+                
+        except Exception as e:
+            logger.error(f"Error evaluating alert {alert_id}: {e}")
+    
+    def evaluate_goals_alert(self, condition: AlertCondition, match_info: Dict) -> tuple[bool, str]:
+        """Evaluate goals-based alert"""
+        home_team = match_info.get("home_team", "")
+        away_team = match_info.get("away_team", "")
+        home_score = match_info.get("home_score", 0)
+        away_score = match_info.get("away_score", 0)
+        
+        target_team = condition.team
+        team_score = home_score if target_team in home_team else away_score
+        
+        if team_score >= condition.threshold:
+            return True, f"{target_team} has scored {team_score} goals"
+        
+        return False, ""
+    
+    def evaluate_score_difference_alert(self, condition: AlertCondition, match_info: Dict) -> tuple[bool, str]:
+        """Evaluate score difference alert"""
+        home_team = match_info.get("home_team", "")
+        away_team = match_info.get("away_team", "")
+        home_score = match_info.get("home_score", 0)
+        away_score = match_info.get("away_score", 0)
+        
+        target_team = condition.team
+        if target_team in home_team:
+            difference = home_score - away_score
+        else:
+            difference = away_score - home_score
+        
+        if difference >= condition.threshold:
+            return True, f"{target_team} leads by {difference} goals"
+        
+        return False, ""
+    
+    def evaluate_time_based_alert(self, condition: AlertCondition, match_info: Dict) -> tuple[bool, str]:
+        """Evaluate time-based alert"""
+        elapsed = match_info.get("elapsed", 0)
+        
+        if condition.time_window and elapsed >= condition.time_window:
+            return True, f"Match has reached {elapsed} minutes"
+        
+        return False, ""
+    
+    def evaluate_xg_alert(self, condition: AlertCondition, metrics: MatchMetrics) -> tuple[bool, str]:
+        """Evaluate xG-based alert"""
+        target_team = condition.team
+        team_xg = metrics.home_xg if target_team.lower() in metrics.home_team.lower() else metrics.away_xg
+        
+        if team_xg >= condition.threshold:
+            return True, f"{target_team} xG: {team_xg:.2f} >= {condition.threshold}"
+        
+        return False, ""
+    
+    def evaluate_momentum_alert(self, condition: AlertCondition, metrics: MatchMetrics) -> tuple[bool, str]:
+        """Evaluate momentum-based alert"""
+        target_team = condition.team
+        team_momentum = metrics.home_momentum if target_team.lower() in metrics.home_team.lower() else metrics.away_momentum
+        
+        if team_momentum >= condition.threshold:
+            return True, f"{target_team} momentum: {team_momentum:.1f} >= {condition.threshold}"
+        
+        return False, ""
+    
+    def evaluate_pressure_alert(self, condition: AlertCondition, metrics: MatchMetrics) -> tuple[bool, str]:
+        """Evaluate pressure-based alert"""
+        target_team = condition.team
+        team_pressure = metrics.home_pressure_index if target_team.lower() in metrics.home_team.lower() else metrics.away_pressure_index
+        
+        if team_pressure >= condition.threshold:
+            return True, f"{target_team} pressure: {team_pressure:.2f} >= {condition.threshold}"
+        
+        return False, ""
+    
+    def evaluate_win_probability_alert(self, condition: AlertCondition, metrics: MatchMetrics) -> tuple[bool, str]:
+        """Evaluate win probability alert"""
+        target_team = condition.team
+        team_win_prob = metrics.home_win_probability if target_team.lower() in metrics.home_team.lower() else metrics.away_win_probability
+        
+        if team_win_prob >= condition.threshold:
+            return True, f"{target_team} win probability: {team_win_prob:.1%} >= {condition.threshold:.1%}"
+        
+        return False, ""
+    
+    async def alert_already_triggered(self, alert_id: int, match_id: str) -> bool:
+        """Check if alert was already triggered for this match"""
+        try:
+            db = next(get_db())
+            existing = db.query(AlertHistory).filter(
+                AlertHistory.alert_id == alert_id,
+                AlertHistory.match_id == match_id
+            ).first()
+            
+            return existing is not None
+            
+        except Exception as e:
+            logger.error(f"Error checking alert history: {e}")
+            return False
+    
+    async def send_alert(self, alert_id: int, condition: AlertCondition, match_info: Dict, trigger_message: str):
+        """Send SMS alert and record in history"""
+        try:
+            # Format alert message
+            message = sms_service.format_alert_message(
+                f"Alert #{alert_id}",
+                match_info,
+                trigger_message
+            )
+            
+            # Send SMS
+            if condition.user_phone:
+                result = sms_service.send_alert(condition.user_phone, message)
+                logger.info(f"📱 Alert {alert_id} sent: {result.get('success', False)}")
+            
+            # Record in history
+            await self.record_alert_history(alert_id, match_info, trigger_message, result)
+            
+        except Exception as e:
+            logger.error(f"Error sending alert {alert_id}: {e}")
+    
+    async def record_alert_history(self, alert_id: int, match_info: Dict, trigger_message: str, sms_result: Dict):
+        """Record alert trigger in history"""
         try:
             db = next(get_db())
             
-            # Get all live matches
-            live_matches = db.query(Match).filter(Match.status == "LIVE").all()
-            
-            for match in live_matches:
-                await self.check_match_alerts(db, match)
-            
-            # Close the database session
-            db.close()
-                
-        except Exception as e:
-            print(f"❌ Error checking alerts: {e}")
-    
-    async def check_match_alerts(self, db: Session, match: Match):
-        """Check if any alerts should be triggered for a specific match"""
-        try:
-            # Get all active alerts
-            active_alerts = db.query(Alert).filter(Alert.is_active == True).all()
-            
-            for alert in active_alerts:
-                # Check if alert applies to this match
-                if not self._alert_applies_to_match(alert, match):
-                    continue
-                
-                # Check if alert condition is met
-                if self._check_alert_condition(alert, match):
-                    # Check if we already sent this alert for this match
-                    if not self._alert_already_sent(db, alert, match):
-                        await self._trigger_alert(db, alert, match)
-                        
-        except Exception as e:
-            print(f"❌ Error checking match alerts: {e}")
-            # Don't close db here as it's passed from parent
-    
-    def _alert_applies_to_match(self, alert: Alert, match: Match) -> bool:
-        """Check if alert applies to the given match"""
-        # Check team filter
-        if alert.team_filter:
-            if alert.team_filter.lower() not in [match.home_team.lower(), match.away_team.lower()]:
-                return False
-        
-        # Check league filter
-        if alert.league_filter:
-            if alert.league_filter.lower() not in match.league.lower():
-                return False
-        
-        return True
-    
-    def _check_alert_condition(self, alert: Alert, match: Match) -> bool:
-        """Check if alert condition is met"""
-        # Get the relevant value based on alert type
-        if alert.alert_type == "home_score":
-            value = match.home_score
-        elif alert.alert_type == "away_score":
-            value = match.away_score
-        elif alert.alert_type == "total_goals":
-            value = match.home_score + match.away_score
-        else:
-            return False
-        
-        # Check condition
-        if alert.condition == "greater_than":
-            return value > alert.threshold
-        elif alert.condition == "less_than":
-            return value < alert.threshold
-        elif alert.condition == "equals":
-            return value == alert.threshold
-        elif alert.condition == "greater_than_or_equal":
-            return value >= alert.threshold
-        elif alert.condition == "less_than_or_equal":
-            return value <= alert.threshold
-        
-        return False
-    
-    def _alert_already_sent(self, db: Session, alert: Alert, match: Match) -> bool:
-        """Check if this alert was already sent for this match"""
-        existing = db.query(AlertHistory).filter(
-            AlertHistory.alert_id == alert.id,
-            AlertHistory.match_id == match.id
-        ).first()
-        return existing is not None
-    
-    async def _trigger_alert(self, db: Session, alert: Alert, match: Match):
-        """Trigger an alert and send SMS"""
-        try:
-            # Format match info
-            match_info = {
-                "home_team": match.home_team,
-                "away_team": match.away_team,
-                "home_score": match.home_score,
-                "away_score": match.away_score,
-                "league": match.league,
-                "elapsed": 0  # We'll get this from API later
-            }
-            
-            # Create condition description
-            condition_met = self._format_condition_met(alert, match)
-            
-            # Format SMS message
-            message = sms_service.format_alert_message(
-                alert.name, 
-                match_info, 
-                condition_met
+            history = AlertHistory(
+                alert_id=alert_id,
+                match_id=match_info.get("external_id"),
+                triggered_at=datetime.utcnow(),
+                trigger_message=trigger_message,
+                sms_sent=sms_result.get("success", False),
+                sms_message_id=sms_result.get("message_sid", ""),
+                match_data=str(match_info)
             )
             
-            # For now, use a default phone number (user phone will come from user system)
-            # TODO: Get user's phone number from User model
-            default_phone = "+1234567890"  # Placeholder
-            
-            # Send SMS
-            sms_result = sms_service.send_alert(default_phone, message)
-            
-            # Record alert history
-            history = AlertService.record_alert_trigger(
-                db=db,
-                alert=alert,
-                match=match,
-                message=message,
-                sent_via="sms",
-                status="sent" if sms_result["success"] else "failed"
-            )
-            
-            print(f"📱 Alert triggered: {alert.name} - {sms_result['success']}")
+            db.add(history)
+            db.commit()
             
         except Exception as e:
-            print(f"❌ Error triggering alert: {e}")
-    
-    def _format_condition_met(self, alert: Alert, match: Match) -> str:
-        """Format the condition that was met"""
-        if alert.alert_type == "home_score":
-            return f"{match.home_team} scored {match.home_score} goals"
-        elif alert.alert_type == "away_score":
-            return f"{match.away_team} scored {match.away_score} goals"
-        elif alert.alert_type == "total_goals":
-            total = match.home_score + match.away_score
-            return f"Total goals: {total}"
-        else:
-            return f"Condition met: {alert.alert_type}"
+            logger.error(f"Error recording alert history: {e}")
 
 # Global instance
-alert_engine = AlertEngine() 
+match_monitor = MatchMonitor() 

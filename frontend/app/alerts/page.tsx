@@ -113,83 +113,88 @@ export default function AlertsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 flex items-center">
-              <span className="mr-3">🚨</span>
-              Alert Management
-            </h1>
-            <p className="text-gray-600 mt-2">Create and manage your soccer alerts</p>
+        <div className="text-center mb-12">
+          <div className="flex justify-center mb-6">
+            <div className="bg-gradient-to-r from-red-600 to-pink-600 p-4 rounded-2xl shadow-2xl">
+              <span className="text-4xl">🚨</span>
+            </div>
           </div>
-          <div className="flex space-x-4">
+          <h1 className="text-5xl font-bold bg-gradient-to-r from-gray-900 via-red-800 to-pink-800 bg-clip-text text-transparent mb-4">
+            Alert Management
+          </h1>
+          <p className="text-xl text-gray-600 mb-8">Create and manage your intelligent soccer alerts</p>
+          
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button
               onClick={() => setShowCreateForm(true)}
-              className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+              className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-300 font-semibold text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-1 flex items-center justify-center"
             >
               <span className="mr-2">➕</span>
               Create Alert
             </button>
             <button
               onClick={() => setShowAdvancedForm(true)}
-              className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-6 py-3 rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all flex items-center"
+              className="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-8 py-4 rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all duration-300 font-semibold text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-1 flex items-center justify-center"
             >
               <span className="mr-2">⚡</span>
-              Advanced
+              Advanced Alerts
             </button>
           </div>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow-sm border p-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300">
             <div className="flex items-center">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <span className="text-2xl">🔔</span>
+              <div className="p-3 rounded-xl bg-gradient-to-r from-green-500 to-emerald-500">
+                <span className="text-2xl text-white">🔔</span>
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Alerts</p>
-                <p className="text-2xl font-bold text-gray-900">{alerts.length}</p>
+                <p className="text-sm font-medium text-gray-500">Total Alerts</p>
+                <p className="text-3xl font-bold text-gray-900">{alerts.length}</p>
               </div>
             </div>
           </div>
           
-          <div className="bg-white rounded-lg shadow-sm border p-6">
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300">
             <div className="flex items-center">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <span className="text-2xl">🟢</span>
+              <div className="p-3 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500">
+                <span className="text-2xl text-white">🟢</span>
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Active Alerts</p>
-                <p className="text-2xl font-bold text-gray-900">{alerts.filter(a => a.is_active).length}</p>
+                <p className="text-sm font-medium text-gray-500">Active Alerts</p>
+                <p className="text-3xl font-bold text-gray-900">{alerts.filter(a => a.is_active).length}</p>
               </div>
             </div>
           </div>
           
-          <div className="bg-white rounded-lg shadow-sm border p-6">
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300">
             <div className="flex items-center">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <span className="text-2xl">⚡</span>
+              <div className="p-3 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500">
+                <span className="text-2xl text-white">⚡</span>
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Advanced Alerts</p>
-                <p className="text-2xl font-bold text-gray-900">0</p>
+                <p className="text-sm font-medium text-gray-500">Advanced Alerts</p>
+                <p className="text-3xl font-bold text-gray-900">0</p>
               </div>
             </div>
           </div>
         </div>
 
         {/* Navigation */}
-        <div className="flex space-x-8 mb-8">
-          <Link href="/" className="text-gray-600 hover:text-gray-900">
-            Dashboard
+        <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
+          <Link href="/" className="bg-gradient-to-r from-gray-600 to-gray-700 text-white px-6 py-3 rounded-xl hover:from-gray-700 hover:to-gray-800 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-1">
+            🏠 Dashboard
           </Link>
-          <Link href="/matches" className="text-gray-600 hover:text-gray-900">
-            Live Matches
+          <Link href="/matches" className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-6 py-3 rounded-xl hover:from-blue-700 hover:to-cyan-700 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-1">
+            🏟️ Live Matches
           </Link>
-          <span className="text-blue-600 font-medium">Alerts</span>
+          <span className="bg-gradient-to-r from-red-600 to-pink-600 text-white px-6 py-3 rounded-xl font-semibold shadow-lg">
+            🚨 Alerts
+          </span>
         </div>
 
         {/* Advanced Alerts Section */}

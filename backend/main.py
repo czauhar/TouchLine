@@ -171,39 +171,119 @@ async def sync_matches():
 # Alert endpoints
 @app.post("/api/alerts")
 async def create_alert(
-    user_id: int,
     name: str,
+    team: str,
     alert_type: str,
     threshold: float,
-    condition: str,
-    team_filter: str = None,
-    league_filter: str = None,
+    description: str = "",
+    user_phone: str = "",
     db: Session = Depends(get_db)
 ):
     """Create a new alert"""
     try:
-        alert = AlertService.create_alert(
-            db=db,
-            user_id=user_id,
+        alert = Alert(
             name=name,
+            team=team,
             alert_type=alert_type,
             threshold=threshold,
-            condition=condition,
-            team_filter=team_filter,
-            league_filter=league_filter
+            condition=f"{team} {alert_type} >= {threshold}",
+            user_phone=user_phone,
+            is_active=True,
+            created_at=datetime.utcnow()
         )
+        
+        db.add(alert)
+        db.commit()
+        db.refresh(alert)
+        
         return {
             "id": alert.id,
             "name": alert.name,
+            "team": alert.team,
             "alert_type": alert.alert_type,
             "threshold": alert.threshold,
-            "condition": alert.condition,
-            "team_filter": alert.team_filter,
-            "league_filter": alert.league_filter,
-            "is_active": alert.is_active
+            "description": description,  # Use the input description
+            "is_active": alert.is_active,
+            "created_at": alert.created_at.isoformat()
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error creating alert: {str(e)}")
+
+@app.get("/api/alerts")
+async def get_all_alerts(db: Session = Depends(get_db)):
+    """Get all alerts"""
+    try:
+        alerts = db.query(Alert).order_by(Alert.created_at.desc()).all()
+        return {
+            "alerts": [
+                {
+                    "id": alert.id,
+                    "name": alert.name,
+                    "team": alert.team,
+                    "alert_type": alert.alert_type,
+                    "threshold": alert.threshold,
+                    "description": alert.condition,  # Use condition as description
+                    "condition": alert.condition,
+                    "is_active": alert.is_active,
+                    "created_at": alert.created_at.isoformat()
+                }
+                for alert in alerts
+            ],
+            "count": len(alerts)
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching alerts: {str(e)}")
+
+@app.put("/api/alerts/{alert_id}/toggle")
+async def toggle_alert(alert_id: int, db: Session = Depends(get_db)):
+    """Toggle alert active status"""
+    try:
+        alert = db.query(Alert).filter(Alert.id == alert_id).first()
+        if not alert:
+            raise HTTPException(status_code=404, detail="Alert not found")
+        
+        alert.is_active = not alert.is_active
+        db.commit()
+        
+        return {
+            "id": alert.id,
+            "is_active": alert.is_active,
+            "message": f"Alert {'activated' if alert.is_active else 'deactivated'}"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error toggling alert: {str(e)}")
+
+@app.delete("/api/alerts/{alert_id}")
+async def delete_alert(alert_id: int, db: Session = Depends(get_db)):
+    """Delete an alert"""
+    try:
+        alert = db.query(Alert).filter(Alert.id == alert_id).first()
+        if not alert:
+            raise HTTPException(status_code=404, detail="Alert not found")
+        
+        db.delete(alert)
+        db.commit()
+        
+        return {"message": "Alert deleted successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error deleting alert: {str(e)}")
+
+@app.get("/api/alerts/stats")
+async def get_alert_stats(db: Session = Depends(get_db)):
+    """Get alert statistics"""
+    try:
+        total_alerts = db.query(Alert).count()
+        active_alerts = db.query(Alert).filter(Alert.is_active == True).count()
+        alerts_by_type = db.query(Alert.alert_type, db.func.count(Alert.id)).group_by(Alert.alert_type).all()
+        
+        return {
+            "total_alerts": total_alerts,
+            "active_alerts": active_alerts,
+            "inactive_alerts": total_alerts - active_alerts,
+            "alerts_by_type": dict(alerts_by_type)
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching alert stats: {str(e)}")
 
 @app.get("/api/alerts/user/{user_id}")
 async def get_user_alerts(user_id: int, db: Session = Depends(get_db)):

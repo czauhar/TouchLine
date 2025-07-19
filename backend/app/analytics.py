@@ -149,13 +149,18 @@ class AnalyticsEngine:
     
     def calculate_all_metrics(self, match_data: Dict) -> MatchMetrics:
         """Calculate all advanced metrics for a match"""
+        # Extract elapsed time with None handling
+        elapsed = match_data.get("fixture", {}).get("status", {}).get("elapsed")
+        if elapsed is None:
+            elapsed = 0
+        
         metrics = MatchMetrics(
             fixture_id=match_data.get("fixture", {}).get("id", 0),
             home_team=match_data.get("teams", {}).get("home", {}).get("name", ""),
             away_team=match_data.get("teams", {}).get("away", {}).get("name", ""),
             home_score=match_data.get("goals", {}).get("home", 0),
             away_score=match_data.get("goals", {}).get("away", 0),
-            elapsed=match_data.get("fixture", {}).get("status", {}).get("elapsed", 0),
+            elapsed=elapsed,
             league=match_data.get("league", {}).get("name", "")
         )
         
@@ -243,12 +248,12 @@ class AnalyticsEngine:
     
     def _extract_basic_stats(self, metrics: MatchMetrics, match_data: Dict):
         """Extract basic statistics from match data"""
-        total_elapsed = metrics.elapsed
+        total_elapsed = metrics.elapsed or 0  # Handle None case
         score_diff = abs(metrics.home_score - metrics.away_score)
         
         # Estimate shots based on goals and time
         total_goals = metrics.home_score + metrics.away_score
-        estimated_total_shots = max(8, total_goals * 4 + total_elapsed // 10)
+        estimated_total_shots = max(8, total_goals * 4 + (total_elapsed // 10))
         
         # Distribute shots based on possession (simplified)
         home_shot_ratio = 0.5 + (metrics.home_score - metrics.away_score) * 0.1
@@ -294,7 +299,8 @@ class AnalyticsEngine:
         away_momentum += (metrics.away_possession - 50) * 0.5
         
         # Time-based momentum (later in game = higher stakes)
-        time_multiplier = min(2.0, metrics.elapsed / 45.0)
+        elapsed = metrics.elapsed or 0  # Handle None case
+        time_multiplier = min(2.0, elapsed / 45.0) if elapsed > 0 else 1.0
         home_momentum *= time_multiplier
         away_momentum *= time_multiplier
         
@@ -311,7 +317,8 @@ class AnalyticsEngine:
     def _calculate_pressure_index(self, metrics: MatchMetrics):
         """Calculate pressure index for both teams"""
         # Time pressure (more pressure in final minutes)
-        time_pressure = min(1.0, metrics.elapsed / 90.0)
+        elapsed = metrics.elapsed or 0  # Handle None case
+        time_pressure = min(1.0, elapsed / 90.0) if elapsed > 0 else 0.5
         
         # Score pressure
         score_diff = metrics.home_score - metrics.away_score
@@ -339,7 +346,8 @@ class AnalyticsEngine:
     def _calculate_win_probabilities(self, metrics: MatchMetrics):
         """Calculate win/draw probabilities for both teams"""
         total_goals = metrics.home_score + metrics.away_score
-        time_remaining = max(0, 90 - metrics.elapsed)
+        elapsed = metrics.elapsed or 0  # Handle None case
+        time_remaining = max(0, 90 - elapsed)
         
         # Base probabilities from current score
         if metrics.home_score > metrics.away_score:
@@ -363,9 +371,10 @@ class AnalyticsEngine:
             
             # Normalize probabilities
             total = metrics.home_win_probability + metrics.away_win_probability + metrics.draw_probability
-            metrics.home_win_probability /= total
-            metrics.away_win_probability /= total
-            metrics.draw_probability /= total
+            if total > 0:  # Prevent division by zero
+                metrics.home_win_probability /= total
+                metrics.away_win_probability /= total
+                metrics.draw_probability /= total
     
     # =============================================================================
     # Private Methods - Condition Evaluation

@@ -13,20 +13,27 @@ export default function Home() {
   useEffect(() => {
     const checkBackend = async () => {
       try {
+        console.log('🔍 Checking backend status...')
         const [healthResponse, liveResponse, todayResponse] = await Promise.all([
           api.health(),
           api.getLiveMatches(),
           api.getTodaysMatches()
         ])
         
+        console.log('📡 Backend responses received')
         const healthData = await healthResponse.json()
         const liveData = await liveResponse.json()
         const todayData = await todayResponse.json()
+        
+        console.log('📊 Health data:', healthData)
+        console.log('⚽ Live matches:', liveData.count)
+        console.log('📅 Today matches:', todayData.count)
         
         setIsBackendConnected(healthData.status === 'healthy')
         setLiveMatchesCount(liveData.count)
         setTodaysMatchesCount(todayData.count)
       } catch (error) {
+        console.error('❌ Backend connection failed:', error)
         setIsBackendConnected(false)
       } finally {
         setLoading(false)

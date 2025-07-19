@@ -2,13 +2,13 @@ import asyncio
 import os
 from datetime import datetime
 from dotenv import load_dotenv
-from app.advanced_conditions import (
+from app.analytics import (
     AdvancedAlertCondition, Condition, ConditionType, Operator, LogicOperator,
     TimeWindow, SequenceCondition
 )
 from app.alert_engine import match_monitor
 from app.sports_api import sports_api
-from app.metrics_calculator import metrics_calculator
+from app.analytics import analytics_engine
 
 load_dotenv()
 
@@ -166,7 +166,7 @@ async def test_advanced_monitoring():
             # Test with first few matches
             for i, match_data in enumerate(live_matches[:3]):
                 match_info = sports_api.format_match_data(match_data)
-                metrics = metrics_calculator.calculate_all_metrics(match_data)
+                metrics = analytics_engine.calculate_all_metrics(match_data)
                 
                 print(f"\n📊 Match {i+1}: {match_info['home_team']} {match_info['home_score']} - {match_info['away_score']} {match_info['away_team']}")
                 print(f"   Time: {match_info['elapsed']} min | League: {match_info['league']}")
@@ -201,7 +201,7 @@ async def test_advanced_monitoring():
             
             for i, match_data in enumerate(sample_matches):
                 match_info = sports_api.format_match_data(match_data)
-                metrics = metrics_calculator.calculate_all_metrics(match_data)
+                metrics = analytics_engine.calculate_all_metrics(match_data)
                 
                 print(f"\n📊 Sample Match {i+1}: {match_info['home_team']} {match_info['home_score']} - {match_info['away_score']} {match_info['away_team']}")
                 print(f"   Time: {match_info['elapsed']} min")

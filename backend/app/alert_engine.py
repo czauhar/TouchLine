@@ -9,8 +9,8 @@ from .sports_api import sports_api
 from .sms_service import sms_service
 from .database import get_db
 from .models import Match, Alert, AlertHistory
-from .metrics_calculator import metrics_calculator, MatchMetrics
-from .advanced_conditions import advanced_evaluator, AdvancedAlertCondition
+from .analytics import analytics_engine, MatchMetrics
+from .analytics import analytics_engine, AdvancedAlertCondition
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -122,7 +122,7 @@ class MatchMonitor:
         match_info = sports_api.format_match_data(match_data)
         
         # Calculate advanced metrics
-        metrics = metrics_calculator.calculate_all_metrics(match_data)
+        metrics = analytics_engine.calculate_all_metrics(match_data)
         
         for alert_id, condition in self.alert_conditions.items():
             # Check if this alert applies to this match
@@ -179,7 +179,7 @@ class MatchMonitor:
                 return False, ""
             
             # Evaluate the advanced condition
-            triggered, trigger_message = await advanced_evaluator.evaluate_advanced_condition(
+            triggered, trigger_message = await analytics_engine.evaluate_advanced_condition(
                 alert_condition, match_data, metrics
             )
             

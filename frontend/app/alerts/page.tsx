@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import api from '../../lib/api'
 
 interface Alert {
   id: number
@@ -27,7 +28,7 @@ export default function AlertsPage() {
 
   const fetchAlerts = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/alerts')
+      const response = await api.getAlerts()
       const data = await response.json()
       setAlerts(data.alerts || [])
     } catch (error) {
@@ -40,13 +41,7 @@ export default function AlertsPage() {
   const createAlert = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
-      const response = await fetch('http://localhost:8000/api/alerts', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(newAlert),
-      })
+      const response = await api.createAlert(newAlert)
       
       if (response.ok) {
         setNewAlert({ name: '', conditions: '' })
@@ -60,9 +55,7 @@ export default function AlertsPage() {
 
   const toggleAlert = async (id: number) => {
     try {
-      const response = await fetch(`http://localhost:8000/api/alerts/${id}/toggle`, {
-        method: 'PUT',
-      })
+      const response = await api.toggleAlert(id)
       
       if (response.ok) {
         fetchAlerts()
@@ -74,9 +67,7 @@ export default function AlertsPage() {
 
   const deleteAlert = async (id: number) => {
     try {
-      const response = await fetch(`http://localhost:8000/api/alerts/${id}`, {
-        method: 'DELETE',
-      })
+      const response = await api.deleteAlert(id)
       
       if (response.ok) {
         fetchAlerts()

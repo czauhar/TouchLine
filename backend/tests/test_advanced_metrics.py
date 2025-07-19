@@ -11,7 +11,7 @@ import os
 # Add the current directory to Python path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from app.metrics_calculator import metrics_calculator, MatchMetrics
+from app.analytics import analytics_engine, MatchMetrics
 from app.sports_api import sports_api
 
 async def test_advanced_metrics():
@@ -40,7 +40,7 @@ async def test_advanced_metrics():
     # Test 2: Calculate advanced metrics for first match
     print("\n🎯 Test 2: Calculating advanced metrics...")
     match_data = live_matches[0]
-    metrics = metrics_calculator.calculate_all_metrics(match_data)
+    metrics = analytics_engine.calculate_all_metrics(match_data)
     
     print(f"📋 Match: {metrics.home_team} vs {metrics.away_team}")
     print(f"   Score: {metrics.home_score} - {metrics.away_score}")
@@ -69,8 +69,8 @@ async def test_advanced_metrics():
     
     # Test 4: Test team-specific metrics
     print("\n🎯 Test 4: Team-Specific Metrics...")
-    home_metrics = metrics_calculator.get_team_metrics(metrics, metrics.home_team)
-    away_metrics = metrics_calculator.get_team_metrics(metrics, metrics.away_team)
+    home_metrics = analytics_engine.get_team_metrics(metrics, metrics.home_team)
+    away_metrics = analytics_engine.get_team_metrics(metrics, metrics.away_team)
     
     print(f"📊 {metrics.home_team} metrics:")
     for key, value in home_metrics.items():
@@ -86,25 +86,25 @@ async def test_advanced_metrics():
     print("\n🚨 Test 5: Advanced Alert Conditions...")
     
     # Test xG alert
-    xg_triggered, xg_message = metrics_calculator.evaluate_advanced_condition(
+    xg_triggered, xg_message = analytics_engine.evaluate_advanced_condition(
         metrics, "xg > 1.5", metrics.home_team
     )
     print(f"   xG > 1.5 for {metrics.home_team}: {xg_triggered} - {xg_message}")
     
     # Test momentum alert
-    momentum_triggered, momentum_message = metrics_calculator.evaluate_advanced_condition(
+    momentum_triggered, momentum_message = analytics_engine.evaluate_advanced_condition(
         metrics, "momentum > 20", metrics.home_team
     )
     print(f"   Momentum > 20 for {metrics.home_team}: {momentum_triggered} - {momentum_message}")
     
     # Test pressure alert
-    pressure_triggered, pressure_message = metrics_calculator.evaluate_advanced_condition(
+    pressure_triggered, pressure_message = analytics_engine.evaluate_advanced_condition(
         metrics, "pressure > 0.7", metrics.away_team
     )
     print(f"   Pressure > 0.7 for {metrics.away_team}: {pressure_triggered} - {pressure_message}")
     
     # Test win probability alert
-    win_prob_triggered, win_prob_message = metrics_calculator.evaluate_advanced_condition(
+    win_prob_triggered, win_prob_message = analytics_engine.evaluate_advanced_condition(
         metrics, "win_probability > 0.6", metrics.home_team
     )
     print(f"   Win Probability > 60% for {metrics.home_team}: {win_prob_triggered} - {win_prob_message}")

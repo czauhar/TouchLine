@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import api from '../lib/api'
 
 export default function Home() {
   const [isBackendConnected, setIsBackendConnected] = useState(false)
@@ -13,9 +14,9 @@ export default function Home() {
     const checkBackend = async () => {
       try {
         const [healthResponse, liveResponse, todayResponse] = await Promise.all([
-          fetch('http://localhost:8000/health'),
-          fetch('http://localhost:8000/api/matches/live'),
-          fetch('http://localhost:8000/api/matches/today')
+          api.health(),
+          api.getLiveMatches(),
+          api.getTodaysMatches()
         ])
         
         const healthData = await healthResponse.json()

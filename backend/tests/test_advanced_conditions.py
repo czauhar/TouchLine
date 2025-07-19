@@ -2,12 +2,11 @@ import asyncio
 import os
 from datetime import datetime
 from dotenv import load_dotenv
-from app.advanced_conditions import (
+from app.analytics import (
     AdvancedAlertCondition, Condition, ConditionType, Operator, LogicOperator,
-    TimeWindow, SequenceCondition, advanced_evaluator
+    TimeWindow, SequenceCondition, analytics_engine
 )
 from app.sports_api import sports_api
-from app.metrics_calculator import metrics_calculator
 
 load_dotenv()
 
@@ -201,7 +200,7 @@ async def test_advanced_conditions():
             }
             
             # Calculate metrics for sample data
-            metrics = metrics_calculator.calculate_all_metrics(sample_match)
+            metrics = analytics_engine.calculate_all_metrics(sample_match)
             
             print(f"📊 Sample match: Arsenal 2 - 0 Chelsea (25 min)")
             print(f"   Arsenal xG: {metrics.home_xg:.2f}")
@@ -212,7 +211,7 @@ async def test_advanced_conditions():
             alerts_to_test = [and_alert, or_alert, time_alert, sequence_alert, complex_alert]
             
             for alert in alerts_to_test:
-                result, message = await advanced_evaluator.evaluate_advanced_condition(
+                result, message = await analytics_engine.evaluate_advanced_condition(
                     alert, sample_match, metrics
                 )
                 
@@ -228,7 +227,7 @@ async def test_advanced_conditions():
             # Test with first live match
             match_data = live_matches[0]
             match_info = sports_api.format_match_data(match_data)
-            metrics = metrics_calculator.calculate_all_metrics(match_data)
+            metrics = analytics_engine.calculate_all_metrics(match_data)
             
             print(f"📊 Live match: {match_info['home_team']} {match_info['home_score']} - {match_info['away_score']} {match_info['away_team']}")
             print(f"   Time: {match_info['elapsed']} min")
@@ -237,7 +236,7 @@ async def test_advanced_conditions():
             alerts_to_test = [and_alert, or_alert, time_alert, sequence_alert, complex_alert]
             
             for alert in alerts_to_test:
-                result, message = await advanced_evaluator.evaluate_advanced_condition(
+                result, message = await analytics_engine.evaluate_advanced_condition(
                     alert, match_data, metrics
                 )
                 

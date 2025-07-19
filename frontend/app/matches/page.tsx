@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import api from '../../lib/api'
 
 interface Match {
   external_id: string
@@ -35,8 +36,8 @@ export default function MatchesPage() {
   const fetchMatches = async () => {
     try {
       const [liveResponse, todayResponse] = await Promise.all([
-        fetch('http://localhost:8000/api/matches/live'),
-        fetch('http://localhost:8000/api/matches/today')
+        api.getLiveMatches(),
+        api.getTodaysMatches()
       ])
       
       const liveData: MatchesResponse = await liveResponse.json()

@@ -60,7 +60,29 @@ pip install -r requirements.txt
 # Create .env file if it doesn't exist
 if [ ! -f ".env" ]; then
     print_status "Creating .env file..."
-    cp ../env.example .env
+    cat > .env << EOF
+# Database Configuration
+DATABASE_URL=sqlite:///./touchline.db
+
+# JWT Configuration
+SECRET_KEY=your-secret-key-here
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+
+# Twilio Configuration (for SMS)
+TWILIO_ACCOUNT_SID=your-twilio-account-sid-here
+TWILIO_AUTH_TOKEN=your-twilio-auth-token-here
+TWILIO_PHONE_NUMBER=your-twilio-phone-number-here
+
+# Sports API Configuration
+API_FOOTBALL_KEY=your-api-football-key-here
+SPORTS_API_BASE_URL=https://v3.football.api-sports.io/
+
+# Server Configuration
+HOST=0.0.0.0
+PORT=8000
+DEBUG=True
+EOF
     print_warning "Please edit backend/.env with your configuration"
 fi
 

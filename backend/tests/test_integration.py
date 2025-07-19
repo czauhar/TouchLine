@@ -12,7 +12,7 @@ import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from app.alert_engine import match_monitor, AlertType, AlertCondition
-from app.metrics_calculator import metrics_calculator, MatchMetrics
+from app.analytics import analytics_engine, MatchMetrics
 from app.sms_service import sms_service
 from app.sports_api import sports_api
 
@@ -28,10 +28,10 @@ async def test_full_integration():
     assert hasattr(match_monitor, 'evaluate_match_alerts'), "❌ MatchMonitor missing evaluate_match_alerts"
     print("✅ Alert Engine: All methods present")
     
-    # Check Metrics Calculator
-    assert hasattr(metrics_calculator, 'calculate_all_metrics'), "❌ MetricsCalculator missing calculate_all_metrics"
-    assert hasattr(metrics_calculator, 'evaluate_advanced_condition'), "❌ MetricsCalculator missing evaluate_advanced_condition"
-    print("✅ Metrics Calculator: All methods present")
+    # Check Analytics Engine
+    assert hasattr(analytics_engine, 'calculate_all_metrics'), "❌ AnalyticsEngine missing calculate_all_metrics"
+    assert hasattr(analytics_engine, 'evaluate_advanced_condition'), "❌ AnalyticsEngine missing evaluate_advanced_condition"
+    print("✅ Analytics Engine: All methods present")
     
     # Check SMS Service
     assert hasattr(sms_service, 'send_alert'), "❌ SMSService missing send_alert"
@@ -58,7 +58,7 @@ async def test_full_integration():
         print(f"✅ Formatted match data: {match_info['home_team']} vs {match_info['away_team']}")
         
         # Calculate metrics
-        metrics = metrics_calculator.calculate_all_metrics(match_data)
+        metrics = analytics_engine.calculate_all_metrics(match_data)
         print(f"✅ Calculated metrics: xG={metrics.home_xg:.2f}/{metrics.away_xg:.2f}")
         
         # Test 3: Alert Condition Integration
@@ -142,8 +142,8 @@ async def test_full_integration():
         print("\n🧠 Test 6: Advanced Metrics Integration...")
         
         # Test team-specific metrics
-        home_metrics = metrics_calculator.get_team_metrics(metrics, match_info['home_team'])
-        away_metrics = metrics_calculator.get_team_metrics(metrics, match_info['away_team'])
+        home_metrics = analytics_engine.get_team_metrics(metrics, match_info['home_team'])
+        away_metrics = analytics_engine.get_team_metrics(metrics, match_info['away_team'])
         
         print(f"✅ {match_info['home_team']} metrics calculated:")
         print(f"   xG: {home_metrics['xg']:.2f}")
@@ -164,7 +164,7 @@ async def test_full_integration():
         ]
         
         for condition_str, team in advanced_conditions:
-            triggered, message = metrics_calculator.evaluate_advanced_condition(
+            triggered, message = analytics_engine.evaluate_advanced_condition(
                 metrics, condition_str, team
             )
             print(f"   {condition_str} for {team}: {triggered} - {message}")

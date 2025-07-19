@@ -30,24 +30,41 @@ npm run build
 echo "📝 Creating production environment file..."
 cd ../backend
 cat > .env << EOF
-# Database
+# Database Configuration
 DATABASE_URL=sqlite:///./touchline.db
 
-# Twilio SMS (add your credentials)
-TWILIO_ACCOUNT_SID=your_twilio_account_sid_here
-TWILIO_AUTH_TOKEN=your_twilio_auth_token_here
-TWILIO_PHONE_NUMBER=your_twilio_phone_number_here
+# JWT Configuration
+SECRET_KEY=your-production-secret-key-change-this
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=30
 
-# Sports API (add your API key)
-RAPIDAPI_KEY=your_rapidapi_key_here
-RAPIDAPI_HOST=api-football-v1.p.rapidapi.com
+# Twilio Configuration (for SMS)
+TWILIO_ACCOUNT_SID=your-twilio-account-sid-here
+TWILIO_AUTH_TOKEN=your-twilio-auth-token-here
+TWILIO_PHONE_NUMBER=your-twilio-phone-number-here
 
-# Server settings
+# Sports API Configuration
+API_FOOTBALL_KEY=your-api-football-key-here
+SPORTS_API_BASE_URL=https://v3.football.api-sports.io/
+
+# Server Configuration
 HOST=0.0.0.0
 PORT=8000
+DEBUG=False
+
+EOF
+
+# Create frontend environment file
+echo "📝 Creating frontend environment file..."
+cd ../frontend
+cat > .env.local << EOF
+NEXT_PUBLIC_API_URL=http://your-domain.com:8000
+NEXTAUTH_SECRET=your-production-nextauth-secret
+NEXTAUTH_URL=http://your-domain.com
 EOF
 
 echo "✅ App setup completed!"
 echo "📝 Next steps:"
 echo "1. Edit backend/.env with your API credentials"
-echo "2. Run: ./start-production.sh" 
+echo "2. Edit frontend/.env.local with your domain"
+echo "3. Run: ./start-production.sh" 

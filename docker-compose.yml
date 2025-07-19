@@ -1,36 +1,6 @@
 version: '3.8'
 
 services:
-  # PostgreSQL Database
-  postgres:
-    image: postgres:15-alpine
-    container_name: touchline-postgres
-    environment:
-      POSTGRES_DB: touchline
-      POSTGRES_USER: touchline_user
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
-    ports:
-      - "5432:5432"
-    networks:
-      - touchline-network
-    restart: unless-stopped
-
-  # Redis for caching and sessions
-  redis:
-    image: redis:7-alpine
-    container_name: touchline-redis
-    command: redis-server --appendonly yes
-    volumes:
-      - redis_data:/data
-    ports:
-      - "6379:6379"
-    networks:
-      - touchline-network
-    restart: unless-stopped
-
   # Backend API
   backend:
     build:
@@ -38,22 +8,18 @@ services:
       dockerfile: Dockerfile
     container_name: touchline-backend
     environment:
-      - DATABASE_URL=postgresql://touchline_user:${POSTGRES_PASSWORD}@postgres:5432/touchline
-      - REDIS_URL=redis://redis:6379
-      - SECRET_KEY=${SECRET_KEY}
+      - DATABASE_URL=sqlite:///./touchline.db
+      - SECRET_KEY=${SECRET_KEY:-your-secret-key-here}
+      - API_FOOTBALL_KEY=${API_FOOTBALL_KEY}
       - TWILIO_ACCOUNT_SID=${TWILIO_ACCOUNT_SID}
       - TWILIO_AUTH_TOKEN=${TWILIO_AUTH_TOKEN}
       - TWILIO_PHONE_NUMBER=${TWILIO_PHONE_NUMBER}
-      - SPORTS_API_KEY=${SPORTS_API_KEY}
       - ENVIRONMENT=production
     volumes:
       - ./backend:/app
       - /app/venv
     ports:
       - "8000:8000"
-    depends_on:
-      - postgres
-      - redis
     networks:
       - touchline-network
     restart: unless-stopped
@@ -70,9 +36,9 @@ services:
       dockerfile: Dockerfile
     container_name: touchline-frontend
     environment:
-      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
-      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
-      - NEXTAUTH_URL=${NEXTAUTH_URL}
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET:-your-development-secret-key}
+      - NEXTAUTH_URL=http://localhost:3000
     ports:
       - "3000:3000"
     depends_on:
@@ -80,101 +46,6 @@ services:
     networks:
       - touchline-network
     restart: unless-stopped
-
-  # Nginx Reverse Proxy
-  nginx:
-    image: nginx:alpine
-    container_name: touchline-nginx
-    volumes:
-      - ./config/nginx.conf:/etc/nginx/nginx.conf
-      - ./config/ssl:/etc/nginx/ssl
-    ports:
-      - "80:80"
-      - "443:443"
-    depends_on:
-      - frontend
-      - backend
-    networks:
-      - touchline-network
-    restart: unless-stopped
-
-  # Celery Worker for background tasks
-  celery-worker:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: touchline-celery-worker
-    command: celery -A app.celery worker --loglevel=info
-    environment:
-      - DATABASE_URL=postgresql://touchline_user:${POSTGRES_PASSWORD}@postgres:5432/touchline
-      - REDIS_URL=redis://redis:6379
-      - SECRET_KEY=${SECRET_KEY}
-      - TWILIO_ACCOUNT_SID=${TWILIO_ACCOUNT_SID}
-      - TWILIO_AUTH_TOKEN=${TWILIO_AUTH_TOKEN}
-      - TWILIO_PHONE_NUMBER=${TWILIO_PHONE_NUMBER}
-      - SPORTS_API_KEY=${SPORTS_API_KEY}
-    volumes:
-      - ./backend:/app
-    depends_on:
-      - postgres
-      - redis
-    networks:
-      - touchline-network
-    restart: unless-stopped
-
-  # Celery Beat for scheduled tasks
-  celery-beat:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: touchline-celery-beat
-    command: celery -A app.celery beat --loglevel=info
-    environment:
-      - DATABASE_URL=postgresql://touchline_user:${POSTGRES_PASSWORD}@postgres:5432/touchline
-      - REDIS_URL=redis://redis:6379
-      - SECRET_KEY=${SECRET_KEY}
-    volumes:
-      - ./backend:/app
-    depends_on:
-      - postgres
-      - redis
-    networks:
-      - touchline-network
-    restart: unless-stopped
-
-  # Monitoring with Prometheus
-  prometheus:
-    image: prom/prometheus:latest
-    container_name: touchline-prometheus
-    volumes:
-      - ./config/prometheus.yml:/etc/prometheus/prometheus.yml
-      - prometheus_data:/prometheus
-    ports:
-      - "9090:9090"
-    networks:
-      - touchline-network
-    restart: unless-stopped
-
-  # Grafana for dashboards
-  grafana:
-    image: grafana/grafana:latest
-    container_name: touchline-grafana
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
-    volumes:
-      - grafana_data:/var/lib/grafana
-      - ./config/grafana:/etc/grafana/provisioning
-    ports:
-      - "3001:3000"
-    networks:
-      - touchline-network
-    restart: unless-stopped
-
-volumes:
-  postgres_data:
-  redis_data:
-  prometheus_data:
-  grafana_data:
 
 networks:
   touchline-network:

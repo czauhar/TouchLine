@@ -4,12 +4,12 @@ This directory contains all deployment and setup scripts for TouchLine.
 
 ## Scripts Overview
 
-### Core Deployment
-- **`deploy-simple.sh`** - Simple one-command deployment
+### Production Deployment (Recommended)
+- **`deploy-simple.sh`** - Simple one-command deployment to DigitalOcean
 - **`setup-app.sh`** - Application setup and configuration
-- **`start-production.sh`** - Start production services
+- **`start-production.sh`** - Start production services with PM2
 
-### Development & Testing
+### Development Setup
 - **`setup-all.sh`** - Complete development environment setup
 - **`start-all.sh`** - Start all development services
 
@@ -57,11 +57,13 @@ This directory contains all deployment and setup scripts for TouchLine.
 
 - **Ubuntu 24.04 LTS** (recommended)
 - **Git** access to repository
-- **API keys** configured in `.env`
-- **PM2** for process management
+- **API keys** configured in `backend/.env`
+- **PM2** for process management (installed automatically)
 
 ## Configuration
 
 All scripts use environment variables from:
-- `backend/.env` - Backend configuration
-- `frontend/.env.local` - Frontend configuration 
+- `backend/.env` - Backend configuration (created by setup script)
+- `frontend/.env.local` - Frontend configuration (created by setup script)
+
+**Note**: The setup script creates these files automatically with placeholder values. You just need to edit them with your real API keys. 

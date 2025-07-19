@@ -19,12 +19,12 @@ pm2 delete touchline-backend touchline-frontend 2>/dev/null || true
 echo "🐍 Starting backend..."
 cd backend
 source venv/bin/activate
-pm2 start "uvicorn main:app --host 0.0.0.0 --port 8000" --name "touchline-backend" --interpreter python3
+pm2 start "python main.py" --name "touchline-backend" --cwd /var/www/touchline/backend
 
-# Start frontend with PM2 (if serving static files)
+# Start frontend with PM2
 echo "⚛️ Starting frontend..."
 cd ../frontend
-pm2 start "npm start" --name "touchline-frontend"
+pm2 start "npm start" --name "touchline-frontend" --cwd /var/www/touchline/frontend
 
 # Save PM2 configuration
 pm2 save

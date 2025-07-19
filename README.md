@@ -77,24 +77,46 @@ TouchLine is a **real-time sports alert system** that automatically sends SMS no
 
 ```
 TouchLine/
-├── backend/
-│   ├── app/
+├── backend/                  # Python FastAPI backend
+│   ├── app/                 # Main application code
 │   │   ├── __init__.py
-│   │   ├── models.py          # Database models
-│   │   └── database.py        # Database configuration
-│   ├── main.py               # FastAPI application
-│   ├── requirements.txt      # Python dependencies
-│   └── env.example          # Environment variables template
-├── frontend/
+│   │   ├── models.py        # Database models
+│   │   ├── database.py      # Database configuration
+│   │   ├── alert_engine.py  # Alert monitoring system
+│   │   ├── sports_api.py    # Sports data integration
+│   │   ├── sms_service.py   # SMS notification service
+│   │   ├── metrics_calculator.py # Advanced metrics
+│   │   └── advanced_conditions.py # Multi-condition logic
+│   ├── tests/               # Test files
+│   │   ├── test_integration.py
+│   │   ├── test_alert_engine.py
+│   │   ├── test_advanced_conditions.py
+│   │   └── README.md
+│   ├── main.py              # FastAPI entry point
+│   ├── requirements.txt     # Python dependencies
+│   └── env.example         # Environment variables template
+├── frontend/                # Next.js frontend
 │   ├── app/
-│   │   ├── layout.tsx        # Root layout
-│   │   ├── page.tsx          # Main page
-│   │   └── globals.css       # Global styles
-│   ├── package.json          # Node.js dependencies
-│   ├── next.config.js        # Next.js configuration
-│   └── tsconfig.json         # TypeScript configuration
-├── PRODUCT_ROADMAP.md        # Development roadmap
-└── README.md                 # This file
+│   │   ├── layout.tsx       # Root layout
+│   │   ├── page.tsx         # Main page
+│   │   └── globals.css      # Global styles
+│   ├── package.json         # Node.js dependencies
+│   ├── next.config.js       # Next.js configuration
+│   └── tsconfig.json        # TypeScript configuration
+├── scripts/                 # Deployment and utility scripts
+│   └── deployment/          # Production deployment scripts
+│       ├── deploy-simple.sh
+│       ├── setup-app.sh
+│       ├── start-production.sh
+│       └── README.md
+├── config/                  # Configuration files
+│   ├── ecosystem.config.js  # PM2 process configuration
+│   ├── nginx-touchline.conf # Nginx configuration
+│   └── README.md
+├── docs/                    # Documentation
+│   ├── DEPLOYMENT.md        # Deployment guide
+│   └── PRODUCT_ROADMAP.md   # Product roadmap
+└── README.md               # This file
 ```
 
 ## 🔧 Configuration
@@ -112,7 +134,7 @@ Copy `backend/env.example` to `backend/.env` and configure:
 
 ## 📊 Current Status
 
-### ✅ Completed (Phase 1)
+### ✅ Completed (Phase 1 & 2)
 - [x] FastAPI backend with async support
 - [x] SQLite database with all tables
 - [x] Sports API integration (API-Football)
@@ -122,11 +144,16 @@ Copy `backend/env.example` to `backend/.env` and configure:
 - [x] Matches page with live/today views
 - [x] Alert creation and management API
 - [x] Real-time data fetching and storage
+- [x] **Twilio SMS Integration** - Core functionality
+- [x] **Alert Engine** - Background monitoring service
+- [x] **Basic Alert Types** - Goal, score, possession alerts
+- [x] **Advanced Metrics** - xG, momentum, pressure, win probability
 
-### 🚧 Current Focus (Phase 2)
-- [ ] **Twilio SMS Integration** - Core functionality
-- [ ] **Alert Engine** - Background monitoring service
-- [ ] **Basic Alert Types** - Goal, score, possession alerts
+### 🚀 Current Focus (Phase 3)
+- [x] **Advanced Condition Evaluator** - Multi-condition logic (AND/OR)
+- [x] **Time Window Conditions** - Period-specific alerts
+- [x] **Sequence Tracking** - Event sequences within time limits
+- [x] **Complex Nested Conditions** - Advanced condition chaining
 - [ ] **User Authentication** - Simple login system
 
 ### 📋 Next Steps

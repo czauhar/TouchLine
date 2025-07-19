@@ -300,10 +300,15 @@ class MatchMonitor:
                 trigger_message
             )
             
+            # Initialize result
+            result = {"success": False, "message_sid": ""}
+            
             # Send SMS
-            if condition.user_phone:
+            if condition and condition.user_phone:
                 result = sms_service.send_alert(condition.user_phone, message)
                 logger.info(f"📱 Alert {alert_id} sent: {result.get('success', False)}")
+            else:
+                logger.info(f"📱 Alert {alert_id} triggered (no phone number configured)")
             
             # Record in history
             await self.record_alert_history(alert_id, match_info, trigger_message, result)

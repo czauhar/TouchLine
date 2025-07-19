@@ -18,12 +18,28 @@ TouchLine is a **real-time sports alert system** that automatically sends SMS no
 
 ## 🚀 Quick Start
 
-### Prerequisites
+### Option 1: Simple Development Setup (Recommended)
+
+Run the automated setup script:
+
+```bash
+./scripts/dev-setup.sh
+```
+
+This will:
+- Install all dependencies
+- Create virtual environments
+- Set up environment files
+- Give you instructions to start the app
+
+### Option 2: Manual Setup
+
+#### Prerequisites
 - Python 3.8+
 - Node.js 18+
 - PostgreSQL (optional, SQLite used by default)
 
-### Backend Setup
+#### Backend Setup
 
 1. **Navigate to backend directory:**
    ```bash
@@ -43,7 +59,7 @@ TouchLine is a **real-time sports alert system** that automatically sends SMS no
 
 4. **Set up environment variables:**
    ```bash
-   cp env.example .env
+   cp ../env.example .env
    # Edit .env with your configuration
    ```
 
@@ -54,7 +70,7 @@ TouchLine is a **real-time sports alert system** that automatically sends SMS no
    
    Backend will be available at: http://localhost:8000
 
-### Frontend Setup
+#### Frontend Setup
 
 1. **Navigate to frontend directory:**
    ```bash
@@ -66,12 +82,31 @@ TouchLine is a **real-time sports alert system** that automatically sends SMS no
    npm install
    ```
 
-3. **Run the frontend:**
+3. **Create environment file:**
+   ```bash
+   cp ../env.example .env.local
+   # Edit .env.local with your configuration
+   ```
+
+4. **Run the frontend:**
    ```bash
    npm run dev
    ```
    
    Frontend will be available at: http://localhost:3000
+
+### Option 3: Docker Setup (Production Ready)
+
+If you want to use Docker for a production-like environment:
+
+```bash
+# Start everything with Docker
+docker-compose up -d
+
+# Visit http://localhost:3000
+```
+
+See [DOCKER_EXPLANATION.md](DOCKER_EXPLANATION.md) for more details.
 
 ## 📁 Project Structure
 

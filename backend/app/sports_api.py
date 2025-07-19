@@ -10,8 +10,8 @@ load_dotenv()
 class SportsAPIService:
     def __init__(self):
         self.api_key = os.getenv("API_FOOTBALL_KEY")
-        # Direct API-Football endpoint (no longer RapidAPI)
-        self.base_url = "https://v3.football.api-sports.io"
+        # Use environment variable for base URL
+        self.base_url = os.getenv("SPORTS_API_BASE_URL", "https://v3.football.api-sports.io/")
         self.headers = {
             "x-apisports-key": self.api_key
         }

@@ -6,11 +6,12 @@ import asyncio
 from dotenv import load_dotenv
 from sqlalchemy.orm import Session
 from app.database import engine, create_tables, get_db
-from app.models import Base
+from app.models import Base, Alert
 from app.sports_api import sports_api
 from app.services import MatchService, AlertService, UserService
 from app.sms_service import sms_service
 from app.alert_engine import match_monitor
+from datetime import datetime
 
 # Load environment variables
 load_dotenv()

@@ -556,11 +556,41 @@ class MatchMonitor:
             else:
                 logger.info(f"📱 Alert {alert_id} triggered (no phone number configured)")
             
+            # Send WebSocket notification
+            await self.send_websocket_notification(alert_id, condition, match_info, trigger_message)
+            
             # Record in history
             await self.record_alert_history(alert_id, match_info, trigger_message, result)
             
         except Exception as e:
             logger.error(f"Error sending alert {alert_id}: {e}")
+    
+    async def send_websocket_notification(self, alert_id: int, condition: AlertCondition, match_info: Dict, trigger_message: str):
+        """Send real-time WebSocket notification"""
+        try:
+            from .websocket_manager import websocket_manager
+            
+            # Get user ID from alert
+            db = next(get_db())
+            alert = db.query(Alert).filter(Alert.id == alert_id).first()
+            
+            if alert and alert.user_id:
+                alert_data = {
+                    "alert_id": alert_id,
+                    "alert_name": alert.name,
+                    "match_info": match_info,
+                    "trigger_message": trigger_message,
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "alert_type": condition.alert_type.value if condition else "unknown",
+                    "team": condition.team if condition else "",
+                    "player_name": condition.player_name if condition else None
+                }
+                
+                await websocket_manager.send_alert_notification(alert.user_id, alert_data)
+                logger.info(f"📡 WebSocket notification sent for alert {alert_id}")
+            
+        except Exception as e:
+            logger.error(f"Error sending WebSocket notification: {e}")
     
     async def record_alert_history(self, alert_id: int, match_info: Dict, trigger_message: str, sms_result: Dict):
         """Record alert trigger in history"""

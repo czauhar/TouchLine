@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import os
 from dotenv import load_dotenv
-from app.routers import matches, alerts, system
+from app.routers import matches, alerts, system, websocket
 from app.lifespan import lifespan
 from app.core.config import settings
 
@@ -31,6 +31,7 @@ app.add_middleware(
 app.include_router(system.router)
 app.include_router(matches.router)
 app.include_router(alerts.router)
+app.include_router(websocket.router)
 
 if __name__ == "__main__":
     import uvicorn

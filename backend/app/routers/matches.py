@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException
 from app.sports_api import sports_api
 from app.services import MatchService
 from app.database import get_db
+from app.data_service import data_service
 from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/api/matches", tags=["matches"])
@@ -9,17 +10,141 @@ router = APIRouter(prefix="/api/matches", tags=["matches"])
 # Sports API endpoints
 @router.get("/live")
 async def get_live_matches():
-    """Get currently live matches"""
-    matches = await sports_api.get_live_matches()
-    formatted_matches = [sports_api.format_match_data(match) for match in matches]
-    return {"matches": formatted_matches, "count": len(formatted_matches)}
+    """Get currently live matches with efficient caching"""
+    try:
+        match_data_list = await data_service.get_live_matches_efficient()
+        
+        # Convert MatchData objects to dict format for frontend
+        matches = []
+        for match_data in match_data_list:
+            match_dict = {
+                "id": match_data.external_id,
+                "fixture": {
+                    "id": int(match_data.external_id),
+                    "date": match_data.start_time.isoformat(),
+                    "status": {"short": match_data.status, "elapsed": match_data.elapsed_time},
+                    "referee": match_data.referee,
+                    "venue": {"name": match_data.venue},
+                    "weather": match_data.weather
+                },
+                "teams": {
+                    "home": {"name": match_data.home_team},
+                    "away": {"name": match_data.away_team}
+                },
+                "goals": {
+                    "home": match_data.home_score,
+                    "away": match_data.away_score
+                },
+                "league": {"name": match_data.league},
+                "alert_metrics": {
+                    "basic": {
+                        "home_score": match_data.home_score,
+                        "away_score": match_data.away_score,
+                        "score_difference": abs(match_data.home_score - match_data.away_score),
+                        "total_goals": match_data.home_score + match_data.away_score,
+                        "match_status": match_data.status,
+                        "elapsed_time": match_data.elapsed_time,
+                        "referee": match_data.referee,
+                        "venue": match_data.venue,
+                        "weather": match_data.weather
+                    },
+                    "possession": {"home": match_data.home_possession, "away": match_data.away_possession},
+                    "shots": {
+                        "home": match_data.home_shots,
+                        "away": match_data.away_shots,
+                        "home_on_target": match_data.home_shots_on_target,
+                        "away_on_target": match_data.away_shots_on_target
+                    },
+                    "corners": {"home": match_data.home_corners, "away": match_data.away_corners},
+                    "fouls": {"home": match_data.home_fouls, "away": match_data.away_fouls},
+                    "cards": {
+                        "home_yellow": match_data.home_yellow_cards,
+                        "away_yellow": match_data.away_yellow_cards,
+                        "home_red": match_data.home_red_cards,
+                        "away_red": match_data.away_red_cards
+                    },
+                    "xg": {"home": match_data.home_xg, "away": match_data.away_xg},
+                    "pressure": {"home": match_data.home_pressure, "away": match_data.away_pressure},
+                    "momentum": {"home": match_data.home_momentum, "away": match_data.away_momentum}
+                },
+                "detailed_stats": match_data.stats_data,
+                "events": match_data.events_data,
+                "lineups": match_data.lineups_data
+            }
+            matches.append(match_dict)
+        
+        return {"matches": matches, "count": len(matches)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/today")
 async def get_todays_matches():
-    """Get today's matches"""
-    matches = await sports_api.get_todays_matches()
-    formatted_matches = [sports_api.format_match_data(match) for match in matches]
-    return {"matches": formatted_matches, "count": len(formatted_matches)}
+    """Get today's matches with efficient caching"""
+    try:
+        match_data_list = await data_service.get_todays_matches_efficient()
+        
+        # Convert MatchData objects to dict format for frontend
+        matches = []
+        for match_data in match_data_list:
+            match_dict = {
+                "id": match_data.external_id,
+                "fixture": {
+                    "id": int(match_data.external_id),
+                    "date": match_data.start_time.isoformat(),
+                    "status": {"short": match_data.status, "elapsed": match_data.elapsed_time},
+                    "referee": match_data.referee,
+                    "venue": {"name": match_data.venue},
+                    "weather": match_data.weather
+                },
+                "teams": {
+                    "home": {"name": match_data.home_team},
+                    "away": {"name": match_data.away_team}
+                },
+                "goals": {
+                    "home": match_data.home_score,
+                    "away": match_data.away_score
+                },
+                "league": {"name": match_data.league},
+                "alert_metrics": {
+                    "basic": {
+                        "home_score": match_data.home_score,
+                        "away_score": match_data.away_score,
+                        "score_difference": abs(match_data.home_score - match_data.away_score),
+                        "total_goals": match_data.home_score + match_data.away_score,
+                        "match_status": match_data.status,
+                        "elapsed_time": match_data.elapsed_time,
+                        "referee": match_data.referee,
+                        "venue": match_data.venue,
+                        "weather": match_data.weather
+                    },
+                    "possession": {"home": match_data.home_possession, "away": match_data.away_possession},
+                    "shots": {
+                        "home": match_data.home_shots,
+                        "away": match_data.away_shots,
+                        "home_on_target": match_data.home_shots_on_target,
+                        "away_on_target": match_data.away_shots_on_target
+                    },
+                    "corners": {"home": match_data.home_corners, "away": match_data.away_corners},
+                    "fouls": {"home": match_data.home_fouls, "away": match_data.away_fouls},
+                    "cards": {
+                        "home_yellow": match_data.home_yellow_cards,
+                        "away_yellow": match_data.away_yellow_cards,
+                        "home_red": match_data.home_red_cards,
+                        "away_red": match_data.away_red_cards
+                    },
+                    "xg": {"home": match_data.home_xg, "away": match_data.away_xg},
+                    "pressure": {"home": match_data.home_pressure, "away": match_data.away_pressure},
+                    "momentum": {"home": match_data.home_momentum, "away": match_data.away_momentum}
+                },
+                "detailed_stats": match_data.stats_data,
+                "events": match_data.events_data,
+                "lineups": match_data.lineups_data
+            }
+            matches.append(match_dict)
+        
+        return {"matches": matches, "count": len(matches)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/{fixture_id}/statistics")
 async def get_match_statistics(fixture_id: int):

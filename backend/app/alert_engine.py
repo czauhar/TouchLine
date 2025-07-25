@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import json
 from datetime import datetime, timedelta
 from typing import List, Dict, Optional, Callable
 from dataclasses import dataclass
@@ -9,8 +10,10 @@ from .sports_api import sports_api
 from .sms_service import sms_service
 from .database import get_db
 from .models import Match, Alert, AlertHistory
-from .analytics import analytics_engine, MatchMetrics
-from .analytics import analytics_engine, AdvancedAlertCondition
+from .analytics import (
+    analytics_engine, MatchMetrics, AdvancedAlertCondition,
+    Condition, ConditionType, Operator, LogicOperator, TimeWindow
+)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -27,6 +30,16 @@ class AlertType(Enum):
     PRESSURE = "pressure"
     WIN_PROBABILITY = "win_probability"
     CUSTOM = "custom"
+    # Player-specific alert types
+    PLAYER_GOALS = "player_goals"
+    PLAYER_ASSISTS = "player_assists"
+    PLAYER_CARDS = "player_cards"
+    PLAYER_SHOTS = "player_shots"
+    PLAYER_PASSES = "player_passes"
+    PLAYER_TACKLES = "player_tackles"
+    PLAYER_RATING = "player_rating"
+    PLAYER_MINUTES = "player_minutes"
+    PLAYER_GOAL_CONTRIBUTIONS = "player_goal_contributions"
 
 @dataclass
 class AlertCondition:
@@ -37,6 +50,9 @@ class AlertCondition:
     threshold: float
     time_window: Optional[int] = None  # minutes
     user_phone: str = ""
+    # Player-specific fields
+    player_id: Optional[int] = None
+    player_name: Optional[str] = None
 
 class MatchMonitor:
     def __init__(self):
@@ -67,20 +83,19 @@ class MatchMonitor:
         """Monitor all live matches and evaluate alerts"""
         logger.info("📊 Monitoring live matches...")
         
-        # Fetch live matches
-        live_matches = await sports_api.get_live_matches()
+        # Fetch live matches using efficient data service
+        from .data_service import data_service
+        live_matches_data = await data_service.get_live_matches_efficient()
         
         # Update active matches
-        for match_data in live_matches:
-            fixture_id = match_data.get("fixture", {}).get("id")
-            if fixture_id:
-                self.active_matches[fixture_id] = match_data
+        for match_data in live_matches_data:
+            fixture_id = int(match_data.external_id)
+            self.active_matches[fixture_id] = match_data
         
         # Remove finished matches
         finished_matches = []
         for fixture_id, match_data in self.active_matches.items():
-            status = match_data.get("fixture", {}).get("status", {}).get("short", "")
-            if status in ["FT", "AET", "PEN"]:  # Full Time, Extra Time, Penalties
+            if match_data.status in ["FT", "AET", "PEN"]:  # Full Time, Extra Time, Penalties
                 finished_matches.append(fixture_id)
         
         for fixture_id in finished_matches:
@@ -99,8 +114,61 @@ class MatchMonitor:
             db = next(get_db())
             alerts = db.query(Alert).filter(Alert.is_active == True).all()
             
+            # Clear existing conditions
             self.alert_conditions = {}
+            
             for alert in alerts:
+                if alert.alert_type == "advanced":
+                    # Handle advanced alerts with JSON conditions
+                    try:
+                        conditions_data = json.loads(alert.condition)
+                        # Create AdvancedAlertCondition object
+                        advanced_condition = AdvancedAlertCondition(
+                            alert_id=alert.id,
+                            name=alert.name,
+                            description=conditions_data.get('description', ''),
+                            logic_operator=LogicOperator(conditions_data.get('logic_operator', 'AND')),
+                            user_phone=alert.user_phone or conditions_data.get('user_phone', '')
+                        )
+                        
+                        # Add conditions
+                        for cond_data in conditions_data.get('conditions', []):
+                            condition = Condition(
+                                condition_type=ConditionType(cond_data.get('type', 'goals')),
+                                team=cond_data.get('team', ''),
+                                operator=Operator(cond_data.get('operator', '>=')),
+                                value=cond_data.get('value', 0),
+                                description=cond_data.get('description', '')
+                            )
+                            advanced_condition.add_condition(condition)
+                        
+                        # Add time windows
+                        for window_data in conditions_data.get('time_windows', []):
+                            time_window = TimeWindow(
+                                start_minute=window_data.get('start_minute', 0),
+                                end_minute=window_data.get('end_minute', 90),
+                                description=window_data.get('description', '')
+                            )
+                            advanced_condition.add_time_window(time_window)
+                        
+                        # Store the advanced condition
+                        self.alert_conditions[alert.id] = advanced_condition
+                        
+                    except json.JSONDecodeError:
+                        logger.error(f"Invalid JSON in advanced alert {alert.id}")
+                        continue
+                else:
+                    # Handle simple alerts
+                    alert_condition = AlertCondition(
+                        alert_id=alert.id,
+                        alert_type=AlertType(alert.alert_type),
+                        team=alert.team,
+                        condition=alert.condition,
+                        threshold=alert.threshold,
+                        time_window=alert.time_window,
+                        user_phone=alert.user_phone
+                    )
+                    self.alert_conditions[alert.id] = alert_condition
                 condition = AlertCondition(
                     alert_id=alert.id,
                     alert_type=AlertType(alert.alert_type),
@@ -117,31 +185,60 @@ class MatchMonitor:
         except Exception as e:
             logger.error(f"Error loading alerts: {e}")
     
-    async def evaluate_match_alerts(self, fixture_id: int, match_data: Dict):
+    async def evaluate_match_alerts(self, fixture_id: int, match_data):
         """Evaluate all alerts for a specific match"""
-        match_info = sports_api.format_match_data(match_data)
-        
-        # Calculate advanced metrics
-        metrics = analytics_engine.calculate_all_metrics(match_data)
+        # Handle both Dict and MatchData objects
+        if hasattr(match_data, 'external_id'):  # MatchData object
+            match_info = match_data
+            # Create a simple metrics object for MatchData
+            from .analytics import MatchMetrics
+            metrics = MatchMetrics(
+                home_team=match_data.home_team,
+                away_team=match_data.away_team,
+                home_score=match_data.home_score,
+                away_score=match_data.away_score,
+                home_xg=match_data.home_xg,
+                away_xg=match_data.away_xg,
+                home_momentum=match_data.home_momentum,
+                away_momentum=match_data.away_momentum,
+                home_pressure_index=match_data.home_pressure,
+                away_pressure_index=match_data.away_pressure,
+                home_win_probability=0.5,  # Default
+                away_win_probability=0.5   # Default
+            )
+        else:  # Dict object
+            match_info = sports_api.format_match_data(match_data)
+            metrics = analytics_engine.calculate_all_metrics(match_data)
         
         for alert_id, condition in self.alert_conditions.items():
             # Check if this alert applies to this match
-            if self.matches_alert_criteria(match_info, condition):
-                await self.evaluate_single_alert(alert_id, condition, match_info, metrics)
+            if isinstance(condition, AdvancedAlertCondition):
+                # Handle advanced alerts
+                await self.evaluate_advanced_alert(condition, match_data, metrics)
+            else:
+                # Handle simple alerts
+                if self.matches_alert_criteria(match_info, condition):
+                    await self.evaluate_single_alert(alert_id, condition, match_info, metrics)
     
-    def matches_alert_criteria(self, match_info: Dict, condition: AlertCondition) -> bool:
+    def matches_alert_criteria(self, match_info, condition: AlertCondition) -> bool:
         """Check if a match matches the alert criteria"""
-        home_team = match_info.get("home_team", "").lower()
-        away_team = match_info.get("away_team", "").lower()
-        target_team = condition.team.lower()
+        # Handle both Dict and MatchData objects
+        if hasattr(match_info, 'home_team'):  # MatchData object
+            home_team = match_info.home_team.lower()
+            away_team = match_info.away_team.lower()
+        else:  # Dict object
+            home_team = match_info.get("home_team", "").lower()
+            away_team = match_info.get("away_team", "").lower()
         
+        target_team = condition.team.lower()
         return target_team in home_team or target_team in away_team
     
-    async def evaluate_single_alert(self, alert_id: int, condition: AlertCondition, match_info: Dict, metrics: MatchMetrics):
+    async def evaluate_single_alert(self, alert_id: int, condition: AlertCondition, match_info, metrics: MatchMetrics):
         """Evaluate a single alert condition"""
         try:
             # Check if alert was already triggered for this match
-            if await self.alert_already_triggered(alert_id, match_info.get("external_id")):
+            external_id = match_info.external_id if hasattr(match_info, 'external_id') else match_info.get("external_id")
+            if await self.alert_already_triggered(alert_id, external_id):
                 return
             
             # Evaluate based on alert type
@@ -162,6 +259,25 @@ class MatchMonitor:
                 triggered, trigger_message = self.evaluate_pressure_alert(condition, metrics)
             elif condition.alert_type == AlertType.WIN_PROBABILITY:
                 triggered, trigger_message = self.evaluate_win_probability_alert(condition, metrics)
+            # Player-specific alerts
+            elif condition.alert_type == AlertType.PLAYER_GOALS:
+                triggered, trigger_message = self.evaluate_player_goals_alert(condition, metrics)
+            elif condition.alert_type == AlertType.PLAYER_ASSISTS:
+                triggered, trigger_message = self.evaluate_player_assists_alert(condition, metrics)
+            elif condition.alert_type == AlertType.PLAYER_CARDS:
+                triggered, trigger_message = self.evaluate_player_cards_alert(condition, metrics)
+            elif condition.alert_type == AlertType.PLAYER_SHOTS:
+                triggered, trigger_message = self.evaluate_player_shots_alert(condition, metrics)
+            elif condition.alert_type == AlertType.PLAYER_PASSES:
+                triggered, trigger_message = self.evaluate_player_passes_alert(condition, metrics)
+            elif condition.alert_type == AlertType.PLAYER_TACKLES:
+                triggered, trigger_message = self.evaluate_player_tackles_alert(condition, metrics)
+            elif condition.alert_type == AlertType.PLAYER_RATING:
+                triggered, trigger_message = self.evaluate_player_rating_alert(condition, metrics)
+            elif condition.alert_type == AlertType.PLAYER_MINUTES:
+                triggered, trigger_message = self.evaluate_player_minutes_alert(condition, metrics)
+            elif condition.alert_type == AlertType.PLAYER_GOAL_CONTRIBUTIONS:
+                triggered, trigger_message = self.evaluate_player_goal_contributions_alert(condition, metrics)
             
             # Send alert if triggered
             if triggered:
@@ -193,12 +309,19 @@ class MatchMonitor:
             logger.error(f"Error evaluating advanced alert {alert_condition.alert_id}: {e}")
             return False, ""
     
-    def evaluate_goals_alert(self, condition: AlertCondition, match_info: Dict) -> tuple[bool, str]:
+    def evaluate_goals_alert(self, condition: AlertCondition, match_info) -> tuple[bool, str]:
         """Evaluate goals-based alert"""
-        home_team = match_info.get("home_team", "")
-        away_team = match_info.get("away_team", "")
-        home_score = match_info.get("home_score", 0)
-        away_score = match_info.get("away_score", 0)
+        # Handle both Dict and MatchData objects
+        if hasattr(match_info, 'home_team'):  # MatchData object
+            home_team = match_info.home_team
+            away_team = match_info.away_team
+            home_score = match_info.home_score
+            away_score = match_info.away_score
+        else:  # Dict object
+            home_team = match_info.get("home_team", "")
+            away_team = match_info.get("away_team", "")
+            home_score = match_info.get("home_score", 0)
+            away_score = match_info.get("away_score", 0)
         
         target_team = condition.team
         team_score = home_score if target_team in home_team else away_score
@@ -208,12 +331,19 @@ class MatchMonitor:
         
         return False, ""
     
-    def evaluate_score_difference_alert(self, condition: AlertCondition, match_info: Dict) -> tuple[bool, str]:
+    def evaluate_score_difference_alert(self, condition: AlertCondition, match_info) -> tuple[bool, str]:
         """Evaluate score difference alert"""
-        home_team = match_info.get("home_team", "")
-        away_team = match_info.get("away_team", "")
-        home_score = match_info.get("home_score", 0)
-        away_score = match_info.get("away_score", 0)
+        # Handle both Dict and MatchData objects
+        if hasattr(match_info, 'home_team'):  # MatchData object
+            home_team = match_info.home_team
+            away_team = match_info.away_team
+            home_score = match_info.home_score
+            away_score = match_info.away_score
+        else:  # Dict object
+            home_team = match_info.get("home_team", "")
+            away_team = match_info.get("away_team", "")
+            home_score = match_info.get("home_score", 0)
+            away_score = match_info.get("away_score", 0)
         
         target_team = condition.team
         if target_team in home_team:
@@ -226,9 +356,13 @@ class MatchMonitor:
         
         return False, ""
     
-    def evaluate_time_based_alert(self, condition: AlertCondition, match_info: Dict) -> tuple[bool, str]:
+    def evaluate_time_based_alert(self, condition: AlertCondition, match_info) -> tuple[bool, str]:
         """Evaluate time-based alert"""
-        elapsed = match_info.get("elapsed", 0)
+        # Handle both Dict and MatchData objects
+        if hasattr(match_info, 'elapsed_time'):  # MatchData object
+            elapsed = match_info.elapsed_time
+        else:  # Dict object
+            elapsed = match_info.get("elapsed", 0)
         
         if condition.time_window and elapsed >= condition.time_window:
             return True, f"Match has reached {elapsed} minutes"
@@ -272,6 +406,118 @@ class MatchMonitor:
         
         if team_win_prob >= condition.threshold:
             return True, f"{target_team} win probability: {team_win_prob:.1%} >= {condition.threshold:.1%}"
+        
+        return False, ""
+    
+    # =============================================================================
+    # Player-Specific Alert Evaluation Methods
+    # =============================================================================
+    
+    def _get_player_stats(self, condition: AlertCondition, metrics: MatchMetrics):
+        """Get player statistics for a condition"""
+        if not condition.player_id:
+            return None
+        
+        return metrics.players.get(condition.player_id)
+    
+    def evaluate_player_goals_alert(self, condition: AlertCondition, metrics: MatchMetrics) -> tuple[bool, str]:
+        """Evaluate player goals alert"""
+        player = self._get_player_stats(condition, metrics)
+        if not player:
+            return False, f"Player {condition.player_name or condition.player_id} not found"
+        
+        if player.goals >= condition.threshold:
+            return True, f"{player.player_name} has scored {player.goals} goals"
+        
+        return False, ""
+    
+    def evaluate_player_assists_alert(self, condition: AlertCondition, metrics: MatchMetrics) -> tuple[bool, str]:
+        """Evaluate player assists alert"""
+        player = self._get_player_stats(condition, metrics)
+        if not player:
+            return False, f"Player {condition.player_name or condition.player_id} not found"
+        
+        if player.assists >= condition.threshold:
+            return True, f"{player.player_name} has {player.assists} assists"
+        
+        return False, ""
+    
+    def evaluate_player_cards_alert(self, condition: AlertCondition, metrics: MatchMetrics) -> tuple[bool, str]:
+        """Evaluate player cards alert"""
+        player = self._get_player_stats(condition, metrics)
+        if not player:
+            return False, f"Player {condition.player_name or condition.player_id} not found"
+        
+        total_cards = player.yellow_cards + player.red_cards
+        if total_cards >= condition.threshold:
+            return True, f"{player.player_name} has {total_cards} cards"
+        
+        return False, ""
+    
+    def evaluate_player_shots_alert(self, condition: AlertCondition, metrics: MatchMetrics) -> tuple[bool, str]:
+        """Evaluate player shots alert"""
+        player = self._get_player_stats(condition, metrics)
+        if not player:
+            return False, f"Player {condition.player_name or condition.player_id} not found"
+        
+        if player.shots >= condition.threshold:
+            return True, f"{player.player_name} has {player.shots} shots"
+        
+        return False, ""
+    
+    def evaluate_player_passes_alert(self, condition: AlertCondition, metrics: MatchMetrics) -> tuple[bool, str]:
+        """Evaluate player passes alert"""
+        player = self._get_player_stats(condition, metrics)
+        if not player:
+            return False, f"Player {condition.player_name or condition.player_id} not found"
+        
+        if player.passes >= condition.threshold:
+            return True, f"{player.player_name} has {player.passes} passes"
+        
+        return False, ""
+    
+    def evaluate_player_tackles_alert(self, condition: AlertCondition, metrics: MatchMetrics) -> tuple[bool, str]:
+        """Evaluate player tackles alert"""
+        player = self._get_player_stats(condition, metrics)
+        if not player:
+            return False, f"Player {condition.player_name or condition.player_id} not found"
+        
+        if player.tackles >= condition.threshold:
+            return True, f"{player.player_name} has {player.tackles} tackles"
+        
+        return False, ""
+    
+    def evaluate_player_rating_alert(self, condition: AlertCondition, metrics: MatchMetrics) -> tuple[bool, str]:
+        """Evaluate player rating alert"""
+        player = self._get_player_stats(condition, metrics)
+        if not player:
+            return False, f"Player {condition.player_name or condition.player_id} not found"
+        
+        if player.rating >= condition.threshold:
+            return True, f"{player.player_name} rating: {player.rating:.2f} >= {condition.threshold}"
+        
+        return False, ""
+    
+    def evaluate_player_minutes_alert(self, condition: AlertCondition, metrics: MatchMetrics) -> tuple[bool, str]:
+        """Evaluate player minutes alert"""
+        player = self._get_player_stats(condition, metrics)
+        if not player:
+            return False, f"Player {condition.player_name or condition.player_id} not found"
+        
+        if player.minutes_played >= condition.threshold:
+            return True, f"{player.player_name} has played {player.minutes_played} minutes"
+        
+        return False, ""
+    
+    def evaluate_player_goal_contributions_alert(self, condition: AlertCondition, metrics: MatchMetrics) -> tuple[bool, str]:
+        """Evaluate player goal contributions alert"""
+        player = self._get_player_stats(condition, metrics)
+        if not player:
+            return False, f"Player {condition.player_name or condition.player_id} not found"
+        
+        contributions = player.goal_contributions
+        if contributions >= condition.threshold:
+            return True, f"{player.player_name} has {contributions} goal contributions"
         
         return False, ""
     

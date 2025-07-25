@@ -4,6 +4,7 @@ import os
 from dotenv import load_dotenv
 from app.routers import matches, alerts, system
 from app.lifespan import lifespan
+from app.core.config import settings
 
 # Load environment variables
 load_dotenv()
@@ -16,10 +17,11 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS middleware
+# CORS middleware with dynamic origins
+allowed_origins = settings.ALLOWED_ORIGINS.split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -32,9 +34,9 @@ app.include_router(alerts.router)
 
 if __name__ == "__main__":
     import uvicorn
-    host = os.getenv("HOST", "0.0.0.0")
-    port = int(os.getenv("PORT", "8000"))
-    debug = os.getenv("DEBUG", "True").lower() == "true"
+    host = settings.HOST
+    port = settings.PORT
+    debug = settings.DEBUG
     uvicorn.run(
         "main:app",
         host=host,

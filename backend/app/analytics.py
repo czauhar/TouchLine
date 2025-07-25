@@ -13,6 +13,38 @@ logger = logging.getLogger(__name__)
 # =============================================================================
 
 @dataclass
+class PlayerStats:
+    """Individual player statistics"""
+    player_id: int
+    player_name: str
+    team: str
+    position: str
+    goals: int = 0
+    assists: int = 0
+    yellow_cards: int = 0
+    red_cards: int = 0
+    shots: int = 0
+    shots_on_target: int = 0
+    passes: int = 0
+    passes_accurate: int = 0
+    tackles: int = 0
+    interceptions: int = 0
+    fouls_committed: int = 0
+    fouls_drawn: int = 0
+    minutes_played: int = 0
+    rating: float = 0.0
+    
+    @property
+    def pass_accuracy(self) -> float:
+        """Calculate pass accuracy percentage"""
+        return (self.passes_accurate / self.passes * 100) if self.passes > 0 else 0.0
+    
+    @property
+    def goal_contributions(self) -> int:
+        """Total goal contributions (goals + assists)"""
+        return self.goals + self.assists
+
+@dataclass
 class MatchMetrics:
     """Comprehensive match metrics for analysis"""
     fixture_id: int
@@ -47,6 +79,9 @@ class MatchMetrics:
     home_win_probability: float = 0.33
     away_win_probability: float = 0.33
     draw_probability: float = 0.34
+    
+    # Player statistics
+    players: Dict[int, PlayerStats] = field(default_factory=dict)
 
 class ConditionType(Enum):
     """Types of conditions that can be evaluated"""
@@ -61,6 +96,16 @@ class ConditionType(Enum):
     SEQUENCE = "sequence"
     TIME_WINDOW = "time_window"
     PATTERN = "pattern"
+    # Player-specific conditions
+    PLAYER_GOALS = "player_goals"
+    PLAYER_ASSISTS = "player_assists"
+    PLAYER_CARDS = "player_cards"
+    PLAYER_SHOTS = "player_shots"
+    PLAYER_PASSES = "player_passes"
+    PLAYER_TACKLES = "player_tackles"
+    PLAYER_RATING = "player_rating"
+    PLAYER_MINUTES = "player_minutes"
+    PLAYER_GOAL_CONTRIBUTIONS = "player_goal_contributions"
 
 class Operator(Enum):
     """Comparison operators for conditions"""
@@ -88,6 +133,9 @@ class Condition:
     value: Union[float, str, int]
     time_window: Optional[int] = None  # minutes
     description: str = ""
+    # Player-specific fields
+    player_id: Optional[int] = None
+    player_name: Optional[str] = None
 
 @dataclass
 class TimeWindow:
@@ -115,6 +163,18 @@ class AdvancedAlertCondition:
     sequences: List[SequenceCondition] = field(default_factory=list)
     is_active: bool = True
     user_phone: str = ""
+    
+    def add_condition(self, condition: Union[Condition, 'AdvancedAlertCondition']):
+        """Add a condition to this alert"""
+        self.conditions.append(condition)
+    
+    def add_time_window(self, time_window: TimeWindow):
+        """Add a time window to this alert"""
+        self.time_windows.append(time_window)
+    
+    def add_sequence(self, sequence: SequenceCondition):
+        """Add a sequence condition to this alert"""
+        self.sequences.append(sequence)
 
 # =============================================================================
 # Analytics Engine
@@ -166,6 +226,9 @@ class AnalyticsEngine:
         
         # Extract basic stats from match data
         self._extract_basic_stats(metrics, match_data)
+        
+        # Extract player statistics
+        self._extract_player_stats(metrics, match_data)
         
         # Calculate advanced metrics
         self._calculate_xg(metrics)
@@ -272,6 +335,67 @@ class AnalyticsEngine:
         else:
             metrics.home_possession = 50
             metrics.away_possession = 50
+    
+    def _extract_player_stats(self, metrics: MatchMetrics, match_data: Dict):
+        """Extract player statistics from match data"""
+        events = match_data.get("events", [])
+        lineups = match_data.get("lineups", [])
+        
+        # Initialize player stats from lineups
+        home_team = match_data.get("teams", {}).get("home", {}).get("name", "")
+        away_team = match_data.get("teams", {}).get("away", {}).get("name", "")
+        
+        # Process lineups to get player information
+        for lineup in lineups:
+            team_id = lineup.get("team", {}).get("id")
+            is_home = team_id == match_data.get("teams", {}).get("home", {}).get("id")
+            team_name = home_team if is_home else away_team
+            
+            # Process starting lineup
+            for player in lineup.get("startXI", []):
+                player_info = player.get("player", {})
+                player_id = player_info.get("id")
+                if player_id:
+                    metrics.players[player_id] = PlayerStats(
+                        player_id=player_id,
+                        player_name=player_info.get("name", "Unknown"),
+                        team=team_name,
+                        position=player.get("pos", "Unknown")
+                    )
+            
+            # Process substitutes
+            for player in lineup.get("substitutes", []):
+                player_info = player.get("player", {})
+                player_id = player_info.get("id")
+                if player_id:
+                    metrics.players[player_id] = PlayerStats(
+                        player_id=player_id,
+                        player_name=player_info.get("name", "Unknown"),
+                        team=team_name,
+                        position="Sub"
+                    )
+        
+        # Process events to update player statistics
+        for event in events:
+            player_id = event.get("player", {}).get("id")
+            if not player_id or player_id not in metrics.players:
+                continue
+            
+            player = metrics.players[player_id]
+            event_type = event.get("type")
+            detail = event.get("detail", {})
+            
+            if event_type == "Goal":
+                player.goals += 1
+            elif event_type == "Card":
+                card_type = detail.get("type", "yellow")
+                if card_type == "red":
+                    player.red_cards += 1
+                else:
+                    player.yellow_cards += 1
+            elif event_type == "Subst":
+                # Track minutes played (simplified)
+                player.minutes_played = metrics.elapsed or 0
     
     def _calculate_xg(self, metrics: MatchMetrics):
         """Calculate Expected Goals (xG) for both teams"""
@@ -404,6 +528,25 @@ class AnalyticsEngine:
                 return self._evaluate_pressure_condition(condition, metrics)
             elif condition.condition_type == ConditionType.WIN_PROBABILITY:
                 return self._evaluate_win_probability_condition(condition, metrics)
+            # Player-specific conditions
+            elif condition.condition_type == ConditionType.PLAYER_GOALS:
+                return self._evaluate_player_goals_condition(condition, metrics)
+            elif condition.condition_type == ConditionType.PLAYER_ASSISTS:
+                return self._evaluate_player_assists_condition(condition, metrics)
+            elif condition.condition_type == ConditionType.PLAYER_CARDS:
+                return self._evaluate_player_cards_condition(condition, metrics)
+            elif condition.condition_type == ConditionType.PLAYER_SHOTS:
+                return self._evaluate_player_shots_condition(condition, metrics)
+            elif condition.condition_type == ConditionType.PLAYER_PASSES:
+                return self._evaluate_player_passes_condition(condition, metrics)
+            elif condition.condition_type == ConditionType.PLAYER_TACKLES:
+                return self._evaluate_player_tackles_condition(condition, metrics)
+            elif condition.condition_type == ConditionType.PLAYER_RATING:
+                return self._evaluate_player_rating_condition(condition, metrics)
+            elif condition.condition_type == ConditionType.PLAYER_MINUTES:
+                return self._evaluate_player_minutes_condition(condition, metrics)
+            elif condition.condition_type == ConditionType.PLAYER_GOAL_CONTRIBUTIONS:
+                return self._evaluate_player_goal_contributions_condition(condition, metrics)
             else:
                 return False, f"Unknown condition type: {condition.condition_type}"
                 
@@ -481,6 +624,109 @@ class AnalyticsEngine:
         win_prob = team_metrics.get("win_probability", 0)
         result = self._compare_values(win_prob, condition.operator, condition.value)
         message = f"{condition.team} win probability: {win_prob:.2f} {condition.operator.value} {condition.value}" if result else ""
+        return result, message
+    
+    # =============================================================================
+    # Player-Specific Condition Evaluation Methods
+    # =============================================================================
+    
+    def _get_player_stats(self, condition: Condition, metrics: MatchMetrics) -> Optional[PlayerStats]:
+        """Get player statistics for a condition"""
+        if not condition.player_id:
+            return None
+        
+        return metrics.players.get(condition.player_id)
+    
+    def _evaluate_player_goals_condition(self, condition: Condition, metrics: MatchMetrics) -> tuple[bool, str]:
+        """Evaluate player goals condition"""
+        player = self._get_player_stats(condition, metrics)
+        if not player:
+            return False, f"Player {condition.player_name or condition.player_id} not found"
+        
+        result = self._compare_values(player.goals, condition.operator, condition.value)
+        message = f"{player.player_name} goals: {player.goals} {condition.operator.value} {condition.value}" if result else ""
+        return result, message
+    
+    def _evaluate_player_assists_condition(self, condition: Condition, metrics: MatchMetrics) -> tuple[bool, str]:
+        """Evaluate player assists condition"""
+        player = self._get_player_stats(condition, metrics)
+        if not player:
+            return False, f"Player {condition.player_name or condition.player_id} not found"
+        
+        result = self._compare_values(player.assists, condition.operator, condition.value)
+        message = f"{player.player_name} assists: {player.assists} {condition.operator.value} {condition.value}" if result else ""
+        return result, message
+    
+    def _evaluate_player_cards_condition(self, condition: Condition, metrics: MatchMetrics) -> tuple[bool, str]:
+        """Evaluate player cards condition"""
+        player = self._get_player_stats(condition, metrics)
+        if not player:
+            return False, f"Player {condition.player_name or condition.player_id} not found"
+        
+        total_cards = player.yellow_cards + player.red_cards
+        result = self._compare_values(total_cards, condition.operator, condition.value)
+        message = f"{player.player_name} cards: {total_cards} {condition.operator.value} {condition.value}" if result else ""
+        return result, message
+    
+    def _evaluate_player_shots_condition(self, condition: Condition, metrics: MatchMetrics) -> tuple[bool, str]:
+        """Evaluate player shots condition"""
+        player = self._get_player_stats(condition, metrics)
+        if not player:
+            return False, f"Player {condition.player_name or condition.player_id} not found"
+        
+        result = self._compare_values(player.shots, condition.operator, condition.value)
+        message = f"{player.player_name} shots: {player.shots} {condition.operator.value} {condition.value}" if result else ""
+        return result, message
+    
+    def _evaluate_player_passes_condition(self, condition: Condition, metrics: MatchMetrics) -> tuple[bool, str]:
+        """Evaluate player passes condition"""
+        player = self._get_player_stats(condition, metrics)
+        if not player:
+            return False, f"Player {condition.player_name or condition.player_id} not found"
+        
+        result = self._compare_values(player.passes, condition.operator, condition.value)
+        message = f"{player.player_name} passes: {player.passes} {condition.operator.value} {condition.value}" if result else ""
+        return result, message
+    
+    def _evaluate_player_tackles_condition(self, condition: Condition, metrics: MatchMetrics) -> tuple[bool, str]:
+        """Evaluate player tackles condition"""
+        player = self._get_player_stats(condition, metrics)
+        if not player:
+            return False, f"Player {condition.player_name or condition.player_id} not found"
+        
+        result = self._compare_values(player.tackles, condition.operator, condition.value)
+        message = f"{player.player_name} tackles: {player.tackles} {condition.operator.value} {condition.value}" if result else ""
+        return result, message
+    
+    def _evaluate_player_rating_condition(self, condition: Condition, metrics: MatchMetrics) -> tuple[bool, str]:
+        """Evaluate player rating condition"""
+        player = self._get_player_stats(condition, metrics)
+        if not player:
+            return False, f"Player {condition.player_name or condition.player_id} not found"
+        
+        result = self._compare_values(player.rating, condition.operator, condition.value)
+        message = f"{player.player_name} rating: {player.rating:.2f} {condition.operator.value} {condition.value}" if result else ""
+        return result, message
+    
+    def _evaluate_player_minutes_condition(self, condition: Condition, metrics: MatchMetrics) -> tuple[bool, str]:
+        """Evaluate player minutes condition"""
+        player = self._get_player_stats(condition, metrics)
+        if not player:
+            return False, f"Player {condition.player_name or condition.player_id} not found"
+        
+        result = self._compare_values(player.minutes_played, condition.operator, condition.value)
+        message = f"{player.player_name} minutes: {player.minutes_played} {condition.operator.value} {condition.value}" if result else ""
+        return result, message
+    
+    def _evaluate_player_goal_contributions_condition(self, condition: Condition, metrics: MatchMetrics) -> tuple[bool, str]:
+        """Evaluate player goal contributions condition"""
+        player = self._get_player_stats(condition, metrics)
+        if not player:
+            return False, f"Player {condition.player_name or condition.player_id} not found"
+        
+        contributions = player.goal_contributions
+        result = self._compare_values(contributions, condition.operator, condition.value)
+        message = f"{player.player_name} goal contributions: {contributions} {condition.operator.value} {condition.value}" if result else ""
         return result, message
     
     def _compare_values(self, actual: Union[float, int, str], operator: Operator, expected: Union[float, int, str]) -> bool:

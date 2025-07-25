@@ -9,6 +9,8 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { useSession } from 'next-auth/react'
+import { useEffect } from 'react'
 
 const signInSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -21,6 +23,13 @@ export default function SignInPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
+
+  const { data: session, status } = useSession()
+  useEffect(() => {
+    if (status === 'authenticated') {
+      router.push('/dashboard')
+    }
+  }, [status, session, router])
 
   const {
     register,
@@ -161,12 +170,7 @@ export default function SignInPage() {
 
             {/* Sign Up Link */}
             <div className="mt-6 text-center">
-              <Link
-                href="/auth/signup"
-                className="text-blue-400 hover:text-blue-300 font-medium transition-colors"
-              >
-                Create a new account
-              </Link>
+              <Link href="/auth/signup" className="text-blue-400 hover:underline">Don&apos;t have an account? Sign up</Link>
             </div>
 
             {/* Back to Home */}

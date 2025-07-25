@@ -1,9 +1,27 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException, Depends, status, Body
+from sqlalchemy.orm import Session
+from app.database import get_db
+from app.models import User
+from app.schemas import RegisterRequest, UserUpdate, UserBase
+from app.auth import AuthService, get_current_user
+from app.services import UserService
 from app.sms_service import sms_service
 from app.sports_api import sports_api
 from app.alert_engine import match_monitor
+import os
+from pydantic import BaseModel, EmailStr
 
 router = APIRouter(tags=["system"])
+
+class RegisterRequest(BaseModel):
+    email: EmailStr
+    username: str
+    password: str
+    phone_number: str = None
+
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str
 
 @router.get("/")
 async def root():
@@ -56,4 +74,76 @@ async def get_alert_engine_status():
     return {
         "running": match_monitor.running,
         "status": "running" if match_monitor.running else "stopped"
-    } 
+    }
+
+@router.post("/api/auth/register")
+async def register_user(data: RegisterRequest, db: Session = Depends(get_db)):
+    # Check for existing user
+    if db.query(User).filter(User.email == data.email).first():
+        raise HTTPException(status_code=400, detail="Email already registered")
+    if db.query(User).filter(User.username == data.username).first():
+        raise HTTPException(status_code=400, detail="Username already taken")
+    hashed_password = AuthService.get_password_hash(data.password)
+    user = User(
+        email=data.email,
+        username=data.username,
+        hashed_password=hashed_password,
+        phone_number=data.phone_number,
+        is_active=True
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    # Create JWT
+    token = AuthService.create_access_token({"sub": str(user.id)})
+    return {"access_token": token, "user": {"id": user.id, "email": user.email, "username": user.username, "phone_number": user.phone_number}}
+
+@router.post("/api/auth/login")
+def login_user(
+    data: LoginRequest = Body(...),
+    db: Session = Depends(get_db)
+):
+    user = AuthService.authenticate_user(db, data.email, data.password)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+    token = AuthService.create_access_token({"sub": str(user.id)})
+    return {
+        "access_token": token,
+        "user": {
+            "id": user.id,
+            "email": user.email,
+            "username": user.username,
+            "phone_number": user.phone_number
+        }
+    }
+
+@router.get("/api/user/me", response_model=UserBase)
+def get_my_profile(current_user: User = Depends(get_current_user)):
+    """Get current user's profile"""
+    return current_user
+
+@router.patch("/api/user/me", response_model=UserBase)
+def update_my_profile(
+    update: UserUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Update current user's profile"""
+    user = UserService.get_user_by_id(db, current_user.id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if update.email:
+        user.email = update.email
+    if update.username:
+        user.username = update.username
+    if update.phone_number:
+        user.phone_number = update.phone_number
+    if update.full_name:
+        user.full_name = update.full_name
+    if update.preferences:
+        user.preferences = update.preferences
+    if update.password:
+        user.hashed_password = AuthService.get_password_hash(update.password)
+    db.commit()
+    db.refresh(user)
+    return user 

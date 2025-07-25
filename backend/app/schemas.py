@@ -7,6 +7,12 @@ class UserBase(BaseModel):
     email: EmailStr
     username: str
     phone_number: Optional[str] = None
+    full_name: Optional[str] = None
+    role: Optional[str] = "user"
+    preferences: Optional[str] = None
+    is_active: bool = True
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
 class UserCreate(UserBase):
     password: str
@@ -34,14 +40,20 @@ class UserResponse(UserBase):
 # Alert schemas
 class AlertBase(BaseModel):
     name: str
-    team: str
     alert_type: str
+    team: Optional[str] = None
+    condition: str
     threshold: float
-    description: Optional[str] = ""
     time_window: Optional[int] = None
+    user_phone: Optional[str] = None
+    is_active: bool = True
+    created_at: Optional[datetime] = None
+    trigger_count: Optional[int] = 0
+    last_triggered_at: Optional[datetime] = None
+    conditions_json: Optional[str] = None
 
 class AlertCreate(AlertBase):
-    user_phone: Optional[str] = None
+    pass
 
 class AlertUpdate(BaseModel):
     name: Optional[str] = None

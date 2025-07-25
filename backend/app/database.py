@@ -2,9 +2,13 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 import os
 from .models import Base
+from .core.config import settings
 
-# Database URL from environment variable
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./touchline.db")
+# Use settings for database URL, but ensure correct path for SQLite
+DATABASE_URL = settings.DATABASE_URL
+if DATABASE_URL.startswith('sqlite:///./'):
+    # Convert relative path to absolute path in app directory
+    DATABASE_URL = DATABASE_URL.replace('sqlite:///./', 'sqlite:///app/')
 
 # Create engine
 engine = create_engine(DATABASE_URL)
@@ -22,4 +26,8 @@ def get_db():
 
 # Create all tables
 def create_tables():
-    Base.metadata.create_all(bind=engine) 
+    Base.metadata.create_all(bind=engine)
+
+if __name__ == "__main__":
+    create_tables()
+    print("Tables created successfully!") 

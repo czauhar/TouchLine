@@ -234,8 +234,12 @@ class SportsAPIService:
                     stat_type = stat.get("type")
                     stat_value = stat.get("value")
                     
+                    # Ensure stat_value is a string or number, not a dict
+                    if isinstance(stat_value, dict):
+                        stat_value = str(stat_value)
+                    
                     if stat_type == "Ball Possession":
-                        percentage = int(stat_value.replace("%", "")) if stat_value else 50
+                        percentage = int(stat_value.replace("%", "")) if stat_value and isinstance(stat_value, str) else 50
                         metrics["possession"][team_key] = percentage
                     elif stat_type == "Total Shots":
                         metrics["shots"][team_key] = int(stat_value) if stat_value else 0
@@ -254,7 +258,7 @@ class SportsAPIService:
                     elif stat_type == "Passes":
                         metrics["passes"][team_key] = int(stat_value) if stat_value else 0
                     elif stat_type == "Passes %":
-                        percentage = int(stat_value.replace("%", "")) if stat_value else 0
+                        percentage = int(stat_value.replace("%", "")) if stat_value and isinstance(stat_value, str) else 0
                         metrics["passes"][f"{team_key}_accuracy"] = percentage
 
         # Extract from events

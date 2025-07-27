@@ -183,10 +183,13 @@ class MatchMonitor:
             # Create a simple metrics object for MatchData
             from .analytics import MatchMetrics
             metrics = MatchMetrics(
+                fixture_id=int(match_data.external_id),
                 home_team=match_data.home_team,
                 away_team=match_data.away_team,
                 home_score=match_data.home_score,
                 away_score=match_data.away_score,
+                elapsed=match_data.elapsed_time or 0,
+                league=match_data.league or "Unknown",
                 home_xg=match_data.home_xg,
                 away_xg=match_data.away_xg,
                 home_momentum=match_data.home_momentum,

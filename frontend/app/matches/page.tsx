@@ -21,20 +21,50 @@ import {
 } from 'lucide-react'
 
 interface Match {
-  id: number
-  external_id: string
-  home_team: string
-  away_team: string
-  league: string
-  start_time: string
-  status: string
-  elapsed: number
-  home_score: number
-  away_score: number
-  venue: string
-  referee: string
-  weather: any
-  alert_metrics: any
+  id: string
+  fixture: {
+    id: number
+    date: string
+    status: {
+      short: string
+      elapsed: number
+    }
+    referee: string | null
+    venue: {
+      name: string | null
+    }
+    weather: any
+  }
+  teams: {
+    home: { name: string }
+    away: { name: string }
+  }
+  goals: {
+    home: number
+    away: number
+  }
+  league: { name: string }
+  alert_metrics: {
+    basic: {
+      home_score: number
+      away_score: number
+      score_difference: number
+      total_goals: number
+      match_status: string
+      elapsed_time: number
+      referee: string | null
+      venue: string | null
+      weather: any
+    }
+    possession: { home: number; away: number }
+    shots: { home: number; away: number; home_on_target: number; away_on_target: number }
+    corners: { home: number; away: number }
+    fouls: { home: number; away: number }
+    cards: { home_yellow: number; away_yellow: number; home_red: number; away_red: number }
+    xg: { home: number; away: number }
+    pressure: { home: number; away: number }
+    momentum: { home: number; away: number }
+  }
   detailed_stats: any[]
   events: any[]
   lineups: any[]
@@ -119,27 +149,27 @@ export default function MatchesPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center space-x-3">
-          {getMatchStatusIcon(match.status)}
-          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getMatchStatusColor(match.status)}`}>
-            {match.status} {match.elapsed > 0 && `(${match.elapsed}')`}
+          {getMatchStatusIcon(match.fixture.status.short)}
+          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getMatchStatusColor(match.fixture.status.short)}`}>
+            {match.fixture.status.short} {match.fixture.status.elapsed > 0 && `(${match.fixture.status.elapsed}')`}
           </span>
         </div>
         <div className="text-right">
-          <p className="text-sm text-gray-300">{match.league}</p>
-          <p className="text-xs text-gray-400">{formatDate(match.start_time)}</p>
+          <p className="text-sm text-gray-300">{match.league.name}</p>
+          <p className="text-xs text-gray-400">{formatDate(match.fixture.date)}</p>
         </div>
       </div>
 
       {/* Teams & Score */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex-1 text-center">
-          <div className="text-lg font-bold text-white mb-1">{match.home_team}</div>
-          <div className="text-3xl font-bold text-white">{match.home_score}</div>
+          <div className="text-lg font-bold text-white mb-1">{match.teams.home.name}</div>
+          <div className="text-3xl font-bold text-white">{match.goals.home}</div>
         </div>
         <div className="mx-4 text-gray-400 font-bold">VS</div>
         <div className="flex-1 text-center">
-          <div className="text-lg font-bold text-white mb-1">{match.away_team}</div>
-          <div className="text-3xl font-bold text-white">{match.away_score}</div>
+          <div className="text-lg font-bold text-white mb-1">{match.teams.away.name}</div>
+          <div className="text-3xl font-bold text-white">{match.goals.away}</div>
         </div>
       </div>
 
@@ -147,11 +177,11 @@ export default function MatchesPage() {
       <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
         <div className="flex items-center text-gray-300">
           <MapPin className="w-4 h-4 mr-2" />
-          <span className="truncate">{match.venue}</span>
+          <span className="truncate">{match.fixture.venue.name || 'Unknown'}</span>
         </div>
         <div className="flex items-center text-gray-300">
           <Users className="w-4 h-4 mr-2" />
-          <span className="truncate">{match.referee}</span>
+          <span className="truncate">{match.fixture.referee || 'Unknown'}</span>
         </div>
       </div>
 
@@ -198,31 +228,31 @@ export default function MatchesPage() {
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <div className="text-center">
-            <div className="text-sm text-gray-300">{formatTime(match.start_time)}</div>
-            <div className="text-xs text-gray-400">{formatDate(match.start_time)}</div>
+            <div className="text-sm text-gray-300">{formatTime(match.fixture.date)}</div>
+            <div className="text-xs text-gray-400">{formatDate(match.fixture.date)}</div>
           </div>
           <div className="flex items-center space-x-2">
-            {getMatchStatusIcon(match.status)}
-            <span className={`px-2 py-1 rounded text-xs font-medium ${getMatchStatusColor(match.status)}`}>
-              {match.status}
+            {getMatchStatusIcon(match.fixture.status.short)}
+            <span className={`px-2 py-1 rounded text-xs font-medium ${getMatchStatusColor(match.fixture.status.short)}`}>
+              {match.fixture.status.short}
             </span>
           </div>
         </div>
         
         <div className="flex items-center space-x-6">
           <div className="text-center">
-            <div className="text-sm text-gray-300">{match.home_team}</div>
-            <div className="text-lg font-bold text-white">{match.home_score}</div>
+            <div className="text-sm text-gray-300">{match.teams.home.name}</div>
+            <div className="text-lg font-bold text-white">{match.goals.home}</div>
           </div>
           <div className="text-gray-400 font-bold">-</div>
           <div className="text-center">
-            <div className="text-sm text-gray-300">{match.away_team}</div>
-            <div className="text-lg font-bold text-white">{match.away_score}</div>
+            <div className="text-sm text-gray-300">{match.teams.away.name}</div>
+            <div className="text-lg font-bold text-white">{match.goals.away}</div>
           </div>
         </div>
 
         <div className="flex items-center space-x-2">
-          <span className="text-xs text-gray-400">{match.league}</span>
+          <span className="text-xs text-gray-400">{match.league.name}</span>
           <button
             onClick={() => setSelectedMatch(match)}
             className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 transition"
@@ -236,7 +266,7 @@ export default function MatchesPage() {
 
   const renderStatsView = () => {
     const matches = getCurrentMatches()
-    const totalGoals = matches.reduce((sum, m) => sum + m.home_score + m.away_score, 0)
+    const totalGoals = matches.reduce((sum, m) => sum + m.goals.home + m.goals.away, 0)
     const totalCards = matches.reduce((sum, m) => {
       const metrics = m.alert_metrics || {}
       return sum + (metrics.cards?.home_yellow || 0) + (metrics.cards?.away_yellow || 0) + 
@@ -452,19 +482,19 @@ export default function MatchesPage() {
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
                     <span className="text-gray-400">League:</span>
-                    <span className="text-white ml-2">{selectedMatch.league}</span>
+                    <span className="text-white ml-2">{selectedMatch.league.name}</span>
                   </div>
                   <div>
                     <span className="text-gray-400">Venue:</span>
-                    <span className="text-white ml-2">{selectedMatch.venue}</span>
+                    <span className="text-white ml-2">{selectedMatch.fixture.venue.name || 'Unknown'}</span>
                   </div>
                   <div>
                     <span className="text-gray-400">Referee:</span>
-                    <span className="text-white ml-2">{selectedMatch.referee}</span>
+                    <span className="text-white ml-2">{selectedMatch.fixture.referee || 'Unknown'}</span>
                   </div>
                   <div>
                     <span className="text-gray-400">Status:</span>
-                    <span className="text-white ml-2">{selectedMatch.status}</span>
+                    <span className="text-white ml-2">{selectedMatch.fixture.status.short}</span>
                   </div>
                 </div>
               </div>

@@ -1,8 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    appDir: true,
-  },
   // PWA Configuration
   async headers() {
     return [
@@ -39,6 +36,11 @@ const nextConfig = {
       {
         source: '/sw.js',
         destination: '/_next/static/sw.js',
+      },
+      // Proxy API requests to backend
+      {
+        source: '/api/backend/:path*',
+        destination: 'http://localhost:8000/:path*',
       },
     ]
   },

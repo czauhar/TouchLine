@@ -8,6 +8,8 @@ from app.services import UserService
 from app.sms_service import sms_service
 from app.sports_api import sports_api
 from app.alert_engine import match_monitor
+from app.services.health_monitor import health_monitor
+from app.utils.logger import log_user_action
 import os
 from pydantic import BaseModel, EmailStr
 
@@ -29,7 +31,53 @@ async def root():
 
 @router.get("/health")
 async def health_check():
+    """Basic health check endpoint"""
     return {"status": "healthy", "service": "TouchLine Backend"}
+
+@router.get("/health/detailed")
+async def detailed_health_check():
+    """Detailed health check with comprehensive metrics"""
+    try:
+        health_report = await health_monitor.generate_health_report()
+        return health_report.get_health_summary()
+    except Exception as e:
+        return {
+            "status": "unhealthy",
+            "error": str(e),
+            "last_check": None
+        }
+
+@router.get("/health/history")
+async def health_history(hours: int = 24):
+    """Get health history for the specified time period"""
+    try:
+        history = health_monitor.get_health_history(hours)
+        return {
+            "history": [
+                {
+                    "timestamp": report.timestamp.isoformat(),
+                    "status": report.overall_status.value,
+                    "system": {
+                        "cpu_percent": report.system_metrics.cpu_percent,
+                        "memory_percent": report.system_metrics.memory_percent,
+                        "disk_percent": report.system_metrics.disk_percent
+                    },
+                    "database": {
+                        "connection_status": report.database_metrics.connection_status,
+                        "response_time_ms": round(report.database_metrics.response_time * 1000, 2)
+                    },
+                    "api": {
+                        "sports_api_status": report.api_metrics.sports_api_status,
+                        "sms_service_status": report.api_metrics.sms_service_status,
+                        "error_count": report.api_metrics.error_count
+                    }
+                }
+                for report in history
+            ],
+            "hours": hours
+        }
+    except Exception as e:
+        return {"error": str(e), "history": []}
 
 @router.get("/api/status")
 async def api_status():

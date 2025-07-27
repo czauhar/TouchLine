@@ -89,4 +89,25 @@ def get_current_user(
 def get_current_active_user(current_user: User = Depends(get_current_user)) -> User:
     if not current_user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
-    return current_user 
+    return current_user
+
+def get_current_user_optional(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
+    db: Session = Depends(get_db)
+) -> Optional[User]:
+    """Get current user if authenticated, otherwise return None"""
+    if not credentials:
+        return None
+    
+    try:
+        payload = AuthService.verify_token(credentials.credentials)
+        if payload is None:
+            return None
+        user_id: str = payload.get("sub")
+        if user_id is None:
+            return None
+    except JWTError:
+        return None
+    
+    user = db.query(User).filter(User.id == int(user_id)).first()
+    return user 

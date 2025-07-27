@@ -25,4 +25,7 @@ twilio>=8.10.0
 slowapi>=0.1.9
 
 # Database migrations
-alembic>=1.13.1 
+alembic>=1.13.1
+
+# System monitoring
+psutil>=5.9.6 

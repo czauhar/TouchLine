@@ -2,90 +2,101 @@
 Custom exceptions for TouchLine application
 """
 
+from fastapi import HTTPException, status
+from typing import Optional, Dict, Any
+
 class TouchLineException(Exception):
     """Base exception for TouchLine application"""
-    pass
-
-class SportsAPIError(TouchLineException):
-    """Raised when sports API encounters an error"""
-    def __init__(self, message: str, status_code: int = None, api_response: dict = None):
+    def __init__(self, message: str, error_code: str = None, details: Dict[str, Any] = None):
         self.message = message
-        self.status_code = status_code
-        self.api_response = api_response
+        self.error_code = error_code
+        self.details = details or {}
         super().__init__(self.message)
 
-class AlertEvaluationError(TouchLineException):
-    """Raised when alert evaluation fails"""
-    def __init__(self, alert_id: int, message: str, condition_data: dict = None):
-        self.alert_id = alert_id
-        self.message = message
-        self.condition_data = condition_data
-        super().__init__(f"Alert {alert_id}: {message}")
+class DatabaseException(TouchLineException):
+    """Database-related exceptions"""
+    pass
 
-class PlayerDataError(TouchLineException):
-    """Raised when player data processing fails"""
-    def __init__(self, player_id: int = None, player_name: str = None, message: str = ""):
-        self.player_id = player_id
-        self.player_name = player_name
-        self.message = message
-        identifier = f"Player {player_id}" if player_id else f"Player {player_name}" if player_name else "Unknown player"
-        super().__init__(f"{identifier}: {message}")
+class SportsAPIException(TouchLineException):
+    """Sports API-related exceptions"""
+    pass
 
-class MatchDataError(TouchLineException):
-    """Raised when match data processing fails"""
-    def __init__(self, match_id: str = None, message: str = ""):
-        self.match_id = match_id
-        self.message = message
-        identifier = f"Match {match_id}" if match_id else "Unknown match"
-        super().__init__(f"{identifier}: {message}")
+class SMSException(TouchLineException):
+    """SMS service-related exceptions"""
+    pass
 
-class WebSocketError(TouchLineException):
-    """Raised when WebSocket operations fail"""
-    def __init__(self, user_id: int = None, message: str = ""):
-        self.user_id = user_id
-        self.message = message
-        identifier = f"User {user_id}" if user_id else "Unknown user"
-        super().__init__(f"WebSocket error for {identifier}: {message}")
+class AlertException(TouchLineException):
+    """Alert system-related exceptions"""
+    pass
 
-class DatabaseError(TouchLineException):
-    """Raised when database operations fail"""
-    def __init__(self, operation: str, table: str = None, message: str = ""):
-        self.operation = operation
-        self.table = table
-        self.message = message
-        identifier = f"{operation} on {table}" if table else operation
-        super().__init__(f"Database error during {identifier}: {message}")
+class AuthenticationException(TouchLineException):
+    """Authentication-related exceptions"""
+    pass
 
-class ValidationError(TouchLineException):
-    """Raised when data validation fails"""
-    def __init__(self, field: str, value: any, message: str = ""):
-        self.field = field
-        self.value = value
-        self.message = message
-        super().__init__(f"Validation error for field '{field}' with value '{value}': {message}")
+class ValidationException(TouchLineException):
+    """Data validation exceptions"""
+    pass
 
-class ConfigurationError(TouchLineException):
-    """Raised when configuration is invalid or missing"""
-    def __init__(self, config_key: str, message: str = ""):
-        self.config_key = config_key
-        self.message = message
-        super().__init__(f"Configuration error for '{config_key}': {message}")
+class RateLimitException(TouchLineException):
+    """Rate limiting exceptions"""
+    pass
 
-class RateLimitError(TouchLineException):
-    """Raised when API rate limit is exceeded"""
-    def __init__(self, api_name: str, retry_after: int = None):
-        self.api_name = api_name
-        self.retry_after = retry_after
-        message = f"Rate limit exceeded for {api_name}"
-        if retry_after:
-            message += f". Retry after {retry_after} seconds"
-        super().__init__(message)
+def handle_touchline_exception(exc: TouchLineException) -> HTTPException:
+    """Convert TouchLine exceptions to HTTP exceptions"""
+    status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+    error_code = exc.error_code or "INTERNAL_ERROR"
+    
+    # Map specific exceptions to appropriate HTTP status codes
+    if isinstance(exc, AuthenticationException):
+        status_code = status.HTTP_401_UNAUTHORIZED
+        error_code = "AUTHENTICATION_ERROR"
+    elif isinstance(exc, ValidationException):
+        status_code = status.HTTP_400_BAD_REQUEST
+        error_code = "VALIDATION_ERROR"
+    elif isinstance(exc, RateLimitException):
+        status_code = status.HTTP_429_TOO_MANY_REQUESTS
+        error_code = "RATE_LIMIT_EXCEEDED"
+    elif isinstance(exc, DatabaseException):
+        status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+        error_code = "DATABASE_ERROR"
+    elif isinstance(exc, SportsAPIException):
+        status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+        error_code = "SPORTS_API_ERROR"
+    elif isinstance(exc, SMSException):
+        status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+        error_code = "SMS_SERVICE_ERROR"
+    elif isinstance(exc, AlertException):
+        status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+        error_code = "ALERT_SYSTEM_ERROR"
+    
+    return HTTPException(
+        status_code=status_code,
+        detail={
+            "error": error_code,
+            "message": exc.message,
+            "details": exc.details
+        }
+    )
 
-class CacheError(TouchLineException):
-    """Raised when cache operations fail"""
-    def __init__(self, operation: str, key: str = None, message: str = ""):
-        self.operation = operation
-        self.key = key
-        self.message = message
-        identifier = f"{operation} for key '{key}'" if key else operation
-        super().__init__(f"Cache error during {identifier}: {message}") 
+# Predefined error messages
+ERROR_MESSAGES = {
+    "INVALID_CREDENTIALS": "Invalid email or password",
+    "USER_NOT_FOUND": "User not found",
+    "USER_ALREADY_EXISTS": "User with this email already exists",
+    "INVALID_TOKEN": "Invalid or expired token",
+    "INSUFFICIENT_PERMISSIONS": "Insufficient permissions",
+    "MATCH_NOT_FOUND": "Match not found",
+    "ALERT_NOT_FOUND": "Alert not found",
+    "INVALID_ALERT_CONDITION": "Invalid alert condition",
+    "SPORTS_API_UNAVAILABLE": "Sports API is currently unavailable",
+    "SMS_SERVICE_UNAVAILABLE": "SMS service is currently unavailable",
+    "RATE_LIMIT_EXCEEDED": "Rate limit exceeded. Please try again later",
+    "DATABASE_CONNECTION_ERROR": "Database connection error",
+    "INVALID_PHONE_NUMBER": "Invalid phone number format",
+    "ALERT_ALREADY_EXISTS": "Alert with this configuration already exists",
+    "INVALID_TIME_WINDOW": "Invalid time window specified",
+    "PLAYER_NOT_FOUND": "Player not found",
+    "INVALID_METRIC_TYPE": "Invalid metric type specified",
+    "CONDITION_EVALUATION_ERROR": "Error evaluating alert condition",
+    "WEBSOCKET_CONNECTION_ERROR": "WebSocket connection error"
+} 

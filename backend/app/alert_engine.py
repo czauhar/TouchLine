@@ -169,16 +169,6 @@ class MatchMonitor:
                         user_phone=alert.user_phone
                     )
                     self.alert_conditions[alert.id] = alert_condition
-                condition = AlertCondition(
-                    alert_id=alert.id,
-                    alert_type=AlertType(alert.alert_type),
-                    team=alert.team,
-                    condition=alert.condition,
-                    threshold=alert.threshold,
-                    time_window=alert.time_window,
-                    user_phone=alert.user_phone
-                )
-                self.alert_conditions[alert.id] = condition
                 
             logger.info(f"📋 Loaded {len(self.alert_conditions)} active alerts")
             

@@ -20,16 +20,15 @@ class DataValidator:
         
         if missing_fields:
             raise ValidationError(
-                "required_fields",
-                missing_fields,
-                f"Missing required fields: {', '.join(missing_fields)}"
+                f"Missing required fields: {', '.join(missing_fields)}",
+                field_errors={field: "Required" for field in missing_fields}
             )
     
     @staticmethod
     def validate_string_field(value: Any, field_name: str, max_length: int = None, min_length: int = None, pattern: str = None) -> str:
         """Validate and sanitize string fields"""
         if value is None:
-            raise ValidationError(field_name, value, "Field cannot be null")
+            raise ValidationError(f"Field '{field_name}' cannot be null", field=field_name, value=value)
         
         # Convert to string if needed
         if not isinstance(value, str):
@@ -40,14 +39,14 @@ class DataValidator:
         
         # Check length constraints
         if min_length and len(value) < min_length:
-            raise ValidationError(field_name, value, f"Minimum length is {min_length} characters")
+            raise ValidationError(f"Field '{field_name}' minimum length is {min_length} characters", field=field_name, value=value)
         
         if max_length and len(value) > max_length:
-            raise ValidationError(field_name, value, f"Maximum length is {max_length} characters")
+            raise ValidationError(f"Field '{field_name}' maximum length is {max_length} characters", field=field_name, value=value)
         
         # Check pattern if provided
         if pattern and not re.match(pattern, value):
-            raise ValidationError(field_name, value, f"Value does not match pattern: {pattern}")
+            raise ValidationError(f"Field '{field_name}' does not match pattern: {pattern}", field=field_name, value=value)
         
         return value
     
@@ -55,18 +54,18 @@ class DataValidator:
     def validate_integer_field(value: Any, field_name: str, min_value: int = None, max_value: int = None) -> int:
         """Validate and convert integer fields"""
         if value is None:
-            raise ValidationError(field_name, value, "Field cannot be null")
+            raise ValidationError(f"Field '{field_name}' cannot be null", field=field_name, value=value)
         
         try:
             int_value = int(value)
         except (ValueError, TypeError):
-            raise ValidationError(field_name, value, "Value must be a valid integer")
+            raise ValidationError(f"Field '{field_name}' must be a valid integer", field=field_name, value=value)
         
         if min_value is not None and int_value < min_value:
-            raise ValidationError(field_name, int_value, f"Value must be at least {min_value}")
+            raise ValidationError(f"Field '{field_name}' must be at least {min_value}", field=field_name, value=int_value)
         
         if max_value is not None and int_value > max_value:
-            raise ValidationError(field_name, int_value, f"Value must be at most {max_value}")
+            raise ValidationError(f"Field '{field_name}' must be at most {max_value}", field=field_name, value=int_value)
         
         return int_value
     
@@ -74,18 +73,18 @@ class DataValidator:
     def validate_float_field(value: Any, field_name: str, min_value: float = None, max_value: float = None) -> float:
         """Validate and convert float fields"""
         if value is None:
-            raise ValidationError(field_name, value, "Field cannot be null")
+            raise ValidationError(f"Field '{field_name}' cannot be null", field=field_name, value=value)
         
         try:
             float_value = float(value)
         except (ValueError, TypeError):
-            raise ValidationError(field_name, value, "Value must be a valid number")
+            raise ValidationError(f"Field '{field_name}' must be a valid number", field=field_name, value=value)
         
         if min_value is not None and float_value < min_value:
-            raise ValidationError(field_name, float_value, f"Value must be at least {min_value}")
+            raise ValidationError(f"Field '{field_name}' must be at least {min_value}", field=field_name, value=float_value)
         
         if max_value is not None and float_value > max_value:
-            raise ValidationError(field_name, float_value, f"Value must be at most {max_value}")
+            raise ValidationError(f"Field '{field_name}' must be at most {max_value}", field=field_name, value=float_value)
         
         return float_value
     
@@ -93,7 +92,7 @@ class DataValidator:
     def validate_boolean_field(value: Any, field_name: str) -> bool:
         """Validate and convert boolean fields"""
         if value is None:
-            raise ValidationError(field_name, value, "Field cannot be null")
+            raise ValidationError(f"Field '{field_name}' cannot be null", field=field_name, value=value)
         
         if isinstance(value, bool):
             return value
@@ -108,7 +107,7 @@ class DataValidator:
         if isinstance(value, int):
             return bool(value)
         
-        raise ValidationError(field_name, value, "Value must be a valid boolean")
+        raise ValidationError(f"Field '{field_name}' must be a valid boolean", field=field_name, value=value)
     
     @staticmethod
     def validate_email(email: str) -> str:
@@ -118,7 +117,7 @@ class DataValidator:
         # Basic email pattern
         email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
         if not re.match(email_pattern, email):
-            raise ValidationError("email", email, "Invalid email format")
+            raise ValidationError("Invalid email format", field="email", value=email)
         
         return email.lower()
     
@@ -127,12 +126,19 @@ class DataValidator:
         """Validate and format phone number"""
         phone = DataValidator.validate_string_field(phone, "phone_number", max_length=20)
         
+        # If it already starts with +, validate the digits after +
+        if phone.startswith('+'):
+            digits_only = re.sub(r'\D', '', phone[1:])  # Remove + and non-digits
+            if len(digits_only) < 7 or len(digits_only) > 15:
+                raise ValidationError("Invalid phone number length", field="phone_number", value=phone)
+            return phone  # Return as is if valid
+        
         # Remove all non-digit characters
         digits_only = re.sub(r'\D', '', phone)
         
         # Check if it's a valid phone number (7-15 digits)
         if len(digits_only) < 7 or len(digits_only) > 15:
-            raise ValidationError("phone_number", phone, "Invalid phone number length")
+            raise ValidationError("Invalid phone number length", field="phone_number", value=phone)
         
         # Format as international format
         if len(digits_only) == 10:
@@ -160,7 +166,7 @@ class DataValidator:
         # Check for common invalid characters
         invalid_chars = re.findall(r'[<>"\']', team_name)
         if invalid_chars:
-            raise ValidationError("team_name", team_name, f"Contains invalid characters: {invalid_chars}")
+            raise ValidationError(f"Contains invalid characters: {invalid_chars}", field="team_name", value=team_name)
         
         return team_name
     
@@ -180,7 +186,7 @@ class DataValidator:
         # Check for common invalid characters
         invalid_chars = re.findall(r'[<>"\']', player_name)
         if invalid_chars:
-            raise ValidationError("player_name", player_name, f"Contains invalid characters: {invalid_chars}")
+            raise ValidationError(f"Contains invalid characters: {invalid_chars}", field="player_name", value=player_name)
         
         return player_name
     

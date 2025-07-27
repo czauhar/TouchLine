@@ -4,19 +4,25 @@ Test script for the Alert Engine
 Run this to test the match monitoring and alert evaluation
 """
 
+import pytest
 import asyncio
 import sys
 import os
+from datetime import datetime
+from dotenv import load_dotenv
 
 # Add the current directory to Python path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from app.alert_engine import match_monitor, AlertType, AlertCondition
+from app.alert_engine import MatchMonitor, AlertType, AlertCondition
 from app.sports_api import sports_api
 
+load_dotenv()
+
+@pytest.mark.asyncio
 async def test_alert_engine():
     """Test the alert engine with sample data"""
-    print("🧪 Testing Alert Engine...")
+    print("🚨 Testing Alert Engine...")
     
     # Test 1: Fetch live matches
     print("\n📊 Test 1: Fetching live matches...")

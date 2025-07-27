@@ -4,9 +4,12 @@ Test script for Advanced Metrics Calculator
 Demonstrates xG, momentum, pressure, and win probability calculations
 """
 
+import pytest
 import asyncio
 import sys
 import os
+from datetime import datetime
+from dotenv import load_dotenv
 
 # Add the current directory to Python path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -14,9 +17,12 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from app.analytics import analytics_engine, MatchMetrics
 from app.sports_api import sports_api
 
+load_dotenv()
+
+@pytest.mark.asyncio
 async def test_advanced_metrics():
     """Test the advanced metrics calculator"""
-    print("🧠 Testing Advanced Metrics Calculator...")
+    print("🧮 Testing Advanced Metrics Calculator...")
     
     # Test 1: Fetch live matches
     print("\n📊 Test 1: Fetching live matches for analysis...")
@@ -86,25 +92,25 @@ async def test_advanced_metrics():
     print("\n🚨 Test 5: Advanced Alert Conditions...")
     
     # Test xG alert
-    xg_triggered, xg_message = analytics_engine.evaluate_advanced_condition(
+    xg_triggered, xg_message = await analytics_engine.evaluate_advanced_condition(
         metrics, "xg > 1.5", metrics.home_team
     )
     print(f"   xG > 1.5 for {metrics.home_team}: {xg_triggered} - {xg_message}")
     
     # Test momentum alert
-    momentum_triggered, momentum_message = analytics_engine.evaluate_advanced_condition(
+    momentum_triggered, momentum_message = await analytics_engine.evaluate_advanced_condition(
         metrics, "momentum > 20", metrics.home_team
     )
     print(f"   Momentum > 20 for {metrics.home_team}: {momentum_triggered} - {momentum_message}")
     
     # Test pressure alert
-    pressure_triggered, pressure_message = analytics_engine.evaluate_advanced_condition(
+    pressure_triggered, pressure_message = await analytics_engine.evaluate_advanced_condition(
         metrics, "pressure > 0.7", metrics.away_team
     )
     print(f"   Pressure > 0.7 for {metrics.away_team}: {pressure_triggered} - {pressure_message}")
     
     # Test win probability alert
-    win_prob_triggered, win_prob_message = analytics_engine.evaluate_advanced_condition(
+    win_prob_triggered, win_prob_message = await analytics_engine.evaluate_advanced_condition(
         metrics, "win_probability > 0.6", metrics.home_team
     )
     print(f"   Win Probability > 60% for {metrics.home_team}: {win_prob_triggered} - {win_prob_message}")

@@ -3,6 +3,7 @@
 Test script to debug API-Football connection
 """
 
+import pytest
 import asyncio
 import httpx
 import os
@@ -11,6 +12,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+@pytest.mark.asyncio
 async def test_api_connection():
     """Test different API endpoints to debug the connection"""
     api_key = os.getenv("API_FOOTBALL_KEY")

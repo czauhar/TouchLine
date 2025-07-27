@@ -1,3 +1,4 @@
+import pytest
 import asyncio
 import os
 from datetime import datetime
@@ -12,8 +13,9 @@ from app.analytics import analytics_engine
 
 load_dotenv()
 
+@pytest.mark.asyncio
 async def test_advanced_monitoring():
-    print("🚀 Testing Advanced Monitoring with Complex Conditions...")
+    print("📊 Testing Advanced Monitoring System...")
     
     # Create some advanced alert conditions
     print("\n📝 Creating advanced alert conditions...")

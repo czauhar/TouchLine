@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, validator
+from pydantic import BaseModel, EmailStr, validator, field_validator, ConfigDict
 from typing import Optional, List
 from datetime import datetime
 
@@ -17,7 +17,8 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     password: str
     
-    @validator('password')
+    @field_validator('password')
+    @classmethod
     def validate_password(cls, v):
         if len(v) < 8:
             raise ValueError('Password must be at least 8 characters long')
@@ -34,8 +35,7 @@ class UserResponse(UserBase):
     is_active: bool
     created_at: datetime
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # Alert schemas
 class AlertBase(BaseModel):
@@ -72,8 +72,7 @@ class AlertResponse(AlertBase):
     is_active: bool
     created_at: datetime
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # Match schemas
 class MatchBase(BaseModel):
@@ -90,8 +89,7 @@ class MatchResponse(MatchBase):
     id: int
     created_at: datetime
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # Authentication schemas
 class Token(BaseModel):
@@ -134,5 +132,4 @@ class AlertHistoryResponse(AlertHistoryBase):
     triggered_at: datetime
     sms_message_id: Optional[str] = None
     
-    class Config:
-        from_attributes = True 
+    model_config = ConfigDict(from_attributes=True) 

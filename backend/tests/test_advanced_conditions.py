@@ -1,3 +1,4 @@
+import pytest
 import asyncio
 import os
 from datetime import datetime
@@ -10,6 +11,7 @@ from app.sports_api import sports_api
 
 load_dotenv()
 
+@pytest.mark.asyncio
 async def test_advanced_conditions():
     print("🧠 Testing Advanced Condition Evaluator...")
     

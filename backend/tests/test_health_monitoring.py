@@ -3,12 +3,17 @@ import asyncio
 from datetime import datetime, timedelta
 from unittest.mock import Mock, patch, AsyncMock
 from fastapi.testclient import TestClient
+import sys
+import os
+
+# Add the parent directory to the path to import main
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.services.health_monitor import (
     HealthMonitor, HealthStatus, SystemMetrics, DatabaseMetrics, 
     APIMetrics, AlertMetrics, HealthReport
 )
-from app.main import app
+from main import app
 
 client = TestClient(app)
 

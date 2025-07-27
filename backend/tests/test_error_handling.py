@@ -175,7 +175,7 @@ class TestDataValidator:
             "league": {"name": "Premier League"}
         }
         DataValidator.validate_match_data(valid_match)
-        
+    
         # Invalid match data
         invalid_match = {
             "fixture": {"id": "not_an_integer"},
@@ -186,10 +186,10 @@ class TestDataValidator:
             "goals": {"home": -1, "away": 1},
             "league": {"name": "Premier League"}
         }
-        
+    
         with pytest.raises(ValidationError) as exc_info:
             DataValidator.validate_match_data(invalid_match)
-        assert "match" in str(exc_info.value)
+        assert "fixture.id" in str(exc_info.value)
 
     def test_validate_alert_condition(self):
         """Test alert condition validation"""
@@ -200,17 +200,17 @@ class TestDataValidator:
             "threshold": 2.5
         }
         DataValidator.validate_alert_condition(valid_condition)
-        
+    
         # Invalid condition
         invalid_condition = {
             "alert_type": "invalid_type",
             "team": "Manchester United",
             "threshold": -10
         }
-        
+    
         with pytest.raises(ValidationError) as exc_info:
             DataValidator.validate_alert_condition(invalid_condition)
-        assert "condition" in str(exc_info.value)
+        assert "alert_type" in str(exc_info.value)
 
     def test_sanitize_html(self):
         """Test HTML sanitization"""
@@ -253,52 +253,66 @@ class TestFallbackManager:
         """Mock API client for testing"""
         return Mock()
 
-    def test_retry_api_call_success(self, fallback_manager, mock_api_client):
-        """Test successful API call with retry"""
-        mock_api_client.get_match.return_value = {"match_id": 123, "status": "live"}
+    @pytest.mark.asyncio
+    async def test_retry_api_call_success(self, fallback_manager, mock_api_client):
+        """Test successful API call with retries"""
+        async def mock_get_match(match_id, **kwargs):
+            return {"match_id": 123, "status": "live"}
         
-        result = fallback_manager._retry_api_call(
+        mock_api_client.get_match = mock_get_match
+        
+        result = await fallback_manager._retry_api_call(
             mock_api_client.get_match, 
-            match_id=123,
-            max_retries=3,
-            base_delay=1
+            123  # match_id as positional argument
         )
         
         assert result == {"match_id": 123, "status": "live"}
-        mock_api_client.get_match.assert_called_once_with(match_id=123)
 
-    def test_retry_api_call_failure(self, fallback_manager, mock_api_client):
+    @pytest.mark.asyncio
+    async def test_retry_api_call_failure(self, fallback_manager, mock_api_client):
         """Test API call failure with retries"""
-        mock_api_client.get_match.side_effect = SportsAPIError("API Error")
+        call_count = 0
+        
+        async def mock_get_match_fail(match_id, **kwargs):
+            nonlocal call_count
+            call_count += 1
+            raise SportsAPIError("API Error")
+        
+        mock_api_client.get_match = mock_get_match_fail
         
         with pytest.raises(SportsAPIError):
-            fallback_manager._retry_api_call(
+            await fallback_manager._retry_api_call(
                 mock_api_client.get_match,
-                match_id=123,
-                max_retries=2,
-                base_delay=0.1  # Short delay for testing
+                123  # match_id as positional argument
             )
         
         # Should have been called 3 times (initial + 2 retries)
-        assert mock_api_client.get_match.call_count == 3
+        assert call_count == 3
 
-    def test_retry_api_call_partial_success(self, fallback_manager, mock_api_client):
+    @pytest.mark.asyncio
+    async def test_retry_api_call_partial_success(self, fallback_manager, mock_api_client):
         """Test API call that succeeds after some failures"""
-        mock_api_client.get_match.side_effect = [
-            SportsAPIError("API Error"),
-            SportsAPIError("API Error"),
-            {"match_id": 123, "status": "live"}
-        ]
+        call_count = 0
         
-        result = fallback_manager._retry_api_call(
+        async def mock_get_match_partial(match_id, **kwargs):
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                raise SportsAPIError("API Error")
+            elif call_count == 2:
+                raise SportsAPIError("API Error")
+            else:
+                return {"match_id": 123, "status": "live"}
+        
+        mock_api_client.get_match = mock_get_match_partial
+        
+        result = await fallback_manager._retry_api_call(
             mock_api_client.get_match,
-            match_id=123,
-            max_retries=3,
-            base_delay=0.1
+            123  # match_id as positional argument
         )
         
         assert result == {"match_id": 123, "status": "live"}
-        assert mock_api_client.get_match.call_count == 3
+        assert call_count == 3
 
     def test_get_from_cache(self, fallback_manager):
         """Test cache retrieval"""
@@ -311,13 +325,24 @@ class TestFallbackManager:
         }
         
         # Test cache hit
-        with patch.object(fallback_manager, '_get_cache_data', return_value=cache_data):
-            result = fallback_manager._get_from_cache(123)
+        with patch('app.utils.fallback.get_db') as mock_get_db:
+            mock_db = Mock()
+            mock_cache_entry = Mock()
+            mock_cache_entry.match_data = cache_data
+            mock_cache_entry.is_expired = False
+            mock_db.query.return_value.filter.return_value.first.return_value = mock_cache_entry
+            mock_get_db.return_value = iter([mock_db])
+            
+            result = asyncio.run(fallback_manager._get_from_cache(123))
             assert result == cache_data
         
         # Test cache miss
-        with patch.object(fallback_manager, '_get_cache_data', return_value=None):
-            result = fallback_manager._get_from_cache(123)
+        with patch('app.utils.fallback.get_db') as mock_get_db:
+            mock_db = Mock()
+            mock_db.query.return_value.filter.return_value.first.return_value = None
+            mock_get_db.return_value = iter([mock_db])
+            
+            result = asyncio.run(fallback_manager._get_from_cache(123))
             assert result is None
 
     def test_update_cache(self, fallback_manager):
@@ -329,9 +354,14 @@ class TestFallbackManager:
             "timestamp": datetime.now().isoformat()
         }
         
-        with patch.object(fallback_manager, '_set_cache_data') as mock_set_cache:
-            fallback_manager._update_cache(123, match_data)
-            mock_set_cache.assert_called_once_with(123, match_data)
+        with patch('app.utils.fallback.get_db') as mock_get_db:
+            mock_db = Mock()
+            mock_cache_entry = Mock()
+            mock_db.query.return_value.filter.return_value.first.return_value = mock_cache_entry
+            mock_get_db.return_value = iter([mock_db])
+            
+            asyncio.run(fallback_manager._update_cache(123, match_data))
+            mock_db.commit.assert_called_once()
 
     def test_create_fallback_match_data(self, fallback_manager):
         """Test fallback match data creation"""

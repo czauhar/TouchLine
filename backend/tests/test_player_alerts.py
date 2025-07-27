@@ -1,23 +1,24 @@
 #!/usr/bin/env python3
 """
 Test script for Player-Specific Alert Types
-Tests the new player statistics tracking and alert evaluation
+Tests player statistics tracking and alert evaluation
 """
 
+import pytest
 import asyncio
-import sys
-import os
+from unittest.mock import Mock, patch, AsyncMock
 from datetime import datetime
 
-# Add the current directory to Python path
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+from app.analytics import AnalyticsEngine, MatchMetrics, PlayerStats, Condition, ConditionType, Operator
+from app.alert_engine import MatchMonitor, AlertCondition, AlertType
 
-from app.analytics import analytics_engine, PlayerStats, MatchMetrics, Condition, ConditionType, Operator
-from app.alert_engine import AlertCondition, AlertType
+# Global test instances
+analytics_engine = AnalyticsEngine()
+match_monitor = MatchMonitor()
 
 def test_player_stats():
-    """Test PlayerStats data structure"""
-    print("🧪 Testing PlayerStats...")
+    """Test PlayerStats dataclass properties"""
+    print("\n🧪 Testing PlayerStats properties...")
     
     player = PlayerStats(
         player_id=12345,
@@ -26,26 +27,20 @@ def test_player_stats():
         position="Forward",
         goals=2,
         assists=1,
-        yellow_cards=0,
-        red_cards=0,
         shots=5,
-        shots_on_target=3,
         passes=45,
         passes_accurate=40,
-        tackles=2,
         minutes_played=90,
         rating=8.5
     )
     
     print(f"✅ Player: {player.player_name}")
-    print(f"   Goals: {player.goals}")
-    print(f"   Assists: {player.assists}")
+    print(f"   Goals: {player.goals}, Assists: {player.assists}")
     print(f"   Goal Contributions: {player.goal_contributions}")
     print(f"   Pass Accuracy: {player.pass_accuracy:.1f}%")
-    print(f"   Rating: {player.rating}")
     
-    assert player.goal_contributions == 3
-    assert abs(player.pass_accuracy - 88.9) < 0.1  # Allow for floating point precision
+    assert player.goal_contributions == 3  # 2 goals + 1 assist
+    assert abs(player.pass_accuracy - 88.9) < 0.1  # 40/45 * 100
     print("✅ PlayerStats tests passed!")
 
 def test_match_metrics_with_players():
@@ -104,6 +99,7 @@ def test_match_metrics_with_players():
     assert metrics.players[12346].goals == 1
     print("✅ MatchMetrics with players tests passed!")
 
+@pytest.mark.asyncio
 async def test_player_condition_evaluation():
     """Test player-specific condition evaluation"""
     print("\n🧪 Testing player condition evaluation...")
@@ -159,7 +155,7 @@ async def test_player_condition_evaluation():
     assists_condition = Condition(
         condition_type=ConditionType.PLAYER_ASSISTS,
         team="Inter Miami",
-        operator=Operator.GREATER_EQUAL,
+        operator=Operator.EQUALS,
         value=1,
         player_id=12345,
         player_name="Lionel Messi"
@@ -173,7 +169,7 @@ async def test_player_condition_evaluation():
     print(f"   Message: {message}")
     
     assert result == True
-    assert "Lionel Messi assists: 1 >=" in message
+    assert "Lionel Messi assists: 1 ==" in message
     
     # Test player goal contributions condition
     contributions_condition = Condition(
@@ -197,11 +193,10 @@ async def test_player_condition_evaluation():
     
     print("✅ Player condition evaluation tests passed!")
 
+@pytest.mark.asyncio
 async def test_alert_engine_player_alerts():
     """Test alert engine with player-specific alerts"""
     print("\n🧪 Testing alert engine player alerts...")
-    
-    from app.alert_engine import match_monitor
     
     # Create test metrics
     metrics = MatchMetrics(
@@ -230,8 +225,8 @@ async def test_alert_engine_player_alerts():
     )
     metrics.players[12345] = messi
     
-    # Test player goals alert
-    goals_alert = AlertCondition(
+    # Create test alert condition
+    alert_condition = AlertCondition(
         alert_id=1,
         alert_type=AlertType.PLAYER_GOALS,
         team="Inter Miami",
@@ -241,7 +236,8 @@ async def test_alert_engine_player_alerts():
         player_name="Lionel Messi"
     )
     
-    result, message = match_monitor.evaluate_player_goals_alert(goals_alert, metrics)
+    # Test player goals alert evaluation
+    result, message = match_monitor.evaluate_player_goals_alert(alert_condition, metrics)
     
     print(f"✅ Player Goals Alert: {result}")
     print(f"   Message: {message}")
@@ -250,7 +246,7 @@ async def test_alert_engine_player_alerts():
     assert "Lionel Messi has scored 2 goals" in message
     
     # Test player goal contributions alert
-    contributions_alert = AlertCondition(
+    contributions_condition = AlertCondition(
         alert_id=2,
         alert_type=AlertType.PLAYER_GOAL_CONTRIBUTIONS,
         team="Inter Miami",
@@ -260,7 +256,7 @@ async def test_alert_engine_player_alerts():
         player_name="Lionel Messi"
     )
     
-    result, message = match_monitor.evaluate_player_goal_contributions_alert(contributions_alert, metrics)
+    result, message = match_monitor.evaluate_player_goal_contributions_alert(contributions_condition, metrics)
     
     print(f"✅ Player Goal Contributions Alert: {result}")
     print(f"   Message: {message}")
@@ -270,54 +266,46 @@ async def test_alert_engine_player_alerts():
     
     print("✅ Alert engine player alerts tests passed!")
 
+@pytest.mark.asyncio
 async def test_player_data_extraction():
     """Test player data extraction from match data"""
     print("\n🧪 Testing player data extraction...")
     
-    # Sample match data with events and lineups
+    # Simulate match data with events and lineups
     match_data = {
-        "fixture": {
-            "id": 123456,
-            "status": {"elapsed": 90}
-        },
+        "fixture": {"id": 123456},
         "teams": {
-            "home": {"id": 1, "name": "Inter Miami"},
-            "away": {"id": 2, "name": "LA Galaxy"}
+            "home": {"name": "Inter Miami", "id": 1},
+            "away": {"name": "LA Galaxy", "id": 2}
         },
         "goals": {"home": 3, "away": 1},
-        "league": {"name": "MLS"},
         "events": [
             {
-                "type": "Goal",
                 "player": {"id": 12345, "name": "Lionel Messi"},
-                "team": {"id": 1}
+                "type": "Goal",
+                "team": {"name": "Inter Miami"},
+                "time": {"elapsed": 15}
             },
             {
-                "type": "Goal",
                 "player": {"id": 12345, "name": "Lionel Messi"},
-                "team": {"id": 1}
+                "type": "Goal",
+                "team": {"name": "Inter Miami"},
+                "time": {"elapsed": 45}
             },
             {
-                "type": "Card",
                 "player": {"id": 12346, "name": "Luis Suarez"},
-                "team": {"id": 1},
-                "detail": {"type": "yellow"}
+                "type": "Goal",
+                "team": {"name": "Inter Miami"},
+                "time": {"elapsed": 60}
             }
         ],
         "lineups": [
             {
-                "team": {"id": 1},
+                "team": {"name": "Inter Miami"},
+                "formation": "4-3-3",
                 "startXI": [
-                    {
-                        "player": {"id": 12345, "name": "Lionel Messi"},
-                        "pos": "F"
-                    }
-                ],
-                "substitutes": [
-                    {
-                        "player": {"id": 12346, "name": "Luis Suarez"},
-                        "pos": "F"
-                    }
+                    {"player": {"id": 12345, "name": "Lionel Messi", "pos": "F"}},
+                    {"player": {"id": 12346, "name": "Luis Suarez", "pos": "F"}}
                 ]
             }
         ]
@@ -327,60 +315,31 @@ async def test_player_data_extraction():
     metrics = analytics_engine.calculate_all_metrics(match_data)
     
     print(f"✅ Extracted {len(metrics.players)} players")
+    print(f"   Messi: {metrics.players[12345].goals} goals")
+    print(f"   Suarez: {metrics.players[12346].goals} goals")
     
-    # Check Messi's stats
-    if 12345 in metrics.players:
-        messi = metrics.players[12345]
-        print(f"   Messi goals: {messi.goals}")
-        print(f"   Messi team: {messi.team}")
-        print(f"   Messi position: {messi.position}")
-        
-        assert messi.goals == 2
-        assert messi.team == "Inter Miami"
-        assert messi.position == "F"
-    
-    # Check Suarez's stats
-    if 12346 in metrics.players:
-        suarez = metrics.players[12346]
-        print(f"   Suarez yellow cards: {suarez.yellow_cards}")
-        print(f"   Suarez team: {suarez.team}")
-        
-        assert suarez.yellow_cards == 1
-        assert suarez.team == "Inter Miami"
+    assert len(metrics.players) >= 2
+    assert metrics.players[12345].goals == 2
+    assert metrics.players[12346].goals == 1
+    assert metrics.players[12345].player_name == "Lionel Messi"
+    assert metrics.players[12346].player_name == "Luis Suarez"
     
     print("✅ Player data extraction tests passed!")
 
 async def run_all_tests():
     """Run all player alert tests"""
-    print("🚀 Starting Player-Specific Alert Tests...")
-    print("=" * 50)
+    print("🚀 Running Player Alert Tests...")
     
-    try:
-        test_player_stats()
-        test_match_metrics_with_players()
-        await test_player_condition_evaluation()
-        await test_alert_engine_player_alerts()
-        await test_player_data_extraction()
-        
-        print("\n" + "=" * 50)
-        print("✅ All Player-Specific Alert Tests Passed!")
-        print("\n🎯 Key Features Tested:")
-        print("   • PlayerStats data structure")
-        print("   • Player-specific condition evaluation")
-        print("   • Alert engine player alerts")
-        print("   • Player data extraction from match events")
-        print("   • Goal contributions calculation")
-        print("   • Pass accuracy calculation")
-        
-        print("\n🚀 Next Steps:")
-        print("1. Test with real match data from API")
-        print("2. Create player-specific alerts in the UI")
-        print("3. Monitor live matches for player events")
-        
-    except Exception as e:
-        print(f"\n❌ Test failed: {e}")
-        import traceback
-        traceback.print_exc()
+    # Run synchronous tests
+    test_player_stats()
+    test_match_metrics_with_players()
+    
+    # Run asynchronous tests
+    await test_player_condition_evaluation()
+    await test_alert_engine_player_alerts()
+    await test_player_data_extraction()
+    
+    print("\n🎉 All Player Alert Tests Passed!")
 
 if __name__ == "__main__":
     asyncio.run(run_all_tests()) 

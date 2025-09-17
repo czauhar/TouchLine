@@ -239,7 +239,7 @@ async def delete_alert(
 
 @router.get("/stats")
 async def get_alert_stats(db: Session = Depends(get_db)):
-    """Get alert statistics"""
+    """Get alert statistics (public endpoint)"""
     try:
         total_alerts = db.query(Alert).count()
         active_alerts = db.query(Alert).filter(Alert.is_active == True).count()
@@ -285,7 +285,7 @@ async def get_user_alerts(user_id: int, db: Session = Depends(get_db), current_u
 
 @router.get("/templates")
 async def get_alert_templates():
-    """Get predefined alert templates"""
+    """Get predefined alert templates (public endpoint)"""
     templates = [
         {
             "id": "high_scoring",

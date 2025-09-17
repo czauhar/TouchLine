@@ -24,7 +24,17 @@ import {
   Eye,
   Edit,
   Filter,
-  Search
+  Search,
+  ArrowLeft,
+  RefreshCw,
+  Grid,
+  List,
+  CheckCircle,
+  X,
+  Info,
+  Shield,
+  Smartphone,
+  Mail
 } from 'lucide-react'
 
 interface Alert {
@@ -66,6 +76,7 @@ export default function AlertsPage() {
   const [filter, setFilter] = useState<'all' | 'active' | 'inactive'>('all')
   const [searchTerm, setSearchTerm] = useState('')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
+  const [refreshing, setRefreshing] = useState(false)
 
   useEffect(() => {
     if (status === 'loading') return
@@ -82,6 +93,7 @@ export default function AlertsPage() {
 
   const fetchData = async () => {
     try {
+      setRefreshing(true)
       const [alertsData, matchesData] = await Promise.all([
         apiClient.getAlerts(),
         apiClient.getLiveMatches()
@@ -92,6 +104,7 @@ export default function AlertsPage() {
       console.error('Error fetching data:', error)
     } finally {
       setLoading(false)
+      setRefreshing(false)
     }
   }
 
@@ -115,29 +128,16 @@ export default function AlertsPage() {
     }
   }
 
-  const filteredAlerts = alerts.filter(alert => {
-    const matchesFilter = filter === 'all' || 
-      (filter === 'active' && alert.is_active) || 
-      (filter === 'inactive' && !alert.is_active)
-    
-    const matchesSearch = alert.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         alert.condition.toLowerCase().includes(searchTerm.toLowerCase())
-    
-    return matchesFilter && matchesSearch
-  })
-
   const getAlertStats = () => {
     const total = alerts.length
-    const active = alerts.filter(a => a.is_active).length
-    const triggered = alerts.filter(a => a.trigger_count > 0).length
-    const totalTriggers = alerts.reduce((sum, a) => sum + a.trigger_count, 0)
-    
-    return { total, active, triggered, totalTriggers }
+    const active = alerts.filter(alert => alert.is_active).length
+    const triggered = alerts.filter(alert => alert.trigger_count > 0).length
+    return { total, active, triggered }
   }
 
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString('en-US', { 
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
@@ -147,486 +147,331 @@ export default function AlertsPage() {
 
   const getAlertTypeIcon = (type: string) => {
     switch (type.toLowerCase()) {
-      case 'goals': return <Target className="w-4 h-4" />
-      case 'cards': return <AlertTriangle className="w-4 h-4" />
-      case 'possession': return <Activity className="w-4 h-4" />
-      case 'shots': return <BarChart3 className="w-4 h-4" />
-      case 'momentum': return <TrendingUp className="w-4 h-4" />
-      default: return <Bell className="w-4 h-4" />
+      case 'goal': return <Target className="w-5 h-5 text-red-400" />
+      case 'score': return <BarChart3 className="w-5 h-5 text-blue-400" />
+      case 'xg': return <TrendingUp className="w-5 h-5 text-green-400" />
+      case 'pressure': return <Zap className="w-5 h-5 text-yellow-400" />
+      case 'momentum': return <Activity className="w-5 h-5 text-purple-400" />
+      default: return <Bell className="w-5 h-5 text-gray-400" />
     }
   }
 
   const getAlertTypeColor = (type: string) => {
     switch (type.toLowerCase()) {
-      case 'goals': return 'text-green-400 bg-green-400/10'
-      case 'cards': return 'text-yellow-400 bg-yellow-400/10'
-      case 'possession': return 'text-blue-400 bg-blue-400/10'
-      case 'shots': return 'text-purple-400 bg-purple-400/10'
-      case 'momentum': return 'text-orange-400 bg-orange-400/10'
-      default: return 'text-gray-400 bg-gray-400/10'
+      case 'goal': return 'from-red-500 to-red-600'
+      case 'score': return 'from-blue-500 to-blue-600'
+      case 'xg': return 'from-green-500 to-green-600'
+      case 'pressure': return 'from-yellow-500 to-yellow-600'
+      case 'momentum': return 'from-purple-500 to-purple-600'
+      default: return 'from-gray-500 to-gray-600'
     }
   }
 
-  if (status === 'loading') {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-white"></div>
-      </div>
-    )
-  }
+  const filteredAlerts = alerts.filter(alert => {
+    const matchesSearch = searchTerm === '' || 
+      alert.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      alert.team.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      alert.alert_type.toLowerCase().includes(searchTerm.toLowerCase())
+    
+    const matchesFilter = filter === 'all' || 
+      (filter === 'active' && alert.is_active) ||
+      (filter === 'inactive' && !alert.is_active)
+    
+    return matchesSearch && matchesFilter
+  })
 
-  if (!session) {
+  const stats = getAlertStats()
+
+  if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-4xl font-bold text-white mb-4">Access Required</h1>
-          <p className="text-gray-300 mb-8">Please sign in to manage alerts</p>
-          <button onClick={() => signIn()} className="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition">
-            Sign In
-          </button>
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-white mx-auto"></div>
+          <p className="text-white mt-4 text-lg">Loading alerts...</p>
         </div>
       </div>
     )
   }
-
-  const stats = getAlertStats()
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
       {/* Header */}
-      <div className="bg-black/20 backdrop-blur-xl border-b border-white/10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-white">Alert Center</h1>
+      <div className="bg-white/10 backdrop-blur-lg border-b border-white/20">
+        <div className="max-w-7xl mx-auto px-6 py-6">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between">
+            <div className="mb-4 md:mb-0">
+              <div className="flex items-center space-x-4 mb-2">
+                <Link href="/dashboard" className="text-gray-300 hover:text-white transition">
+                  <ArrowLeft className="w-5 h-5" />
+                </Link>
+                <h1 className="text-3xl font-bold text-white">Alerts</h1>
+              </div>
               <p className="text-gray-300">Manage your sports alerts and notifications</p>
             </div>
             <div className="flex items-center space-x-4">
-              <button
-                onClick={() => setShowCreateModal(true)}
-                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition flex items-center"
+              <button 
+                onClick={fetchData}
+                disabled={refreshing}
+                className="flex items-center bg-white/10 text-white px-4 py-2 rounded-lg hover:bg-white/20 transition border border-white/20"
+              >
+                <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+                Refresh
+              </button>
+              <Link
+                href="/alerts/create"
+                className="flex items-center bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Create Alert
-              </button>
-              <Link href="/dashboard" className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
-                Dashboard
               </Link>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white/10 backdrop-blur-xl rounded-xl p-6 border border-white/20">
-            <div className="flex items-center">
-              <div className="p-2 bg-blue-500/20 rounded-lg">
-                <Target className="w-6 h-6 text-blue-400" />
-              </div>
-              <div className="ml-4">
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        {/* Stats Overview */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20 hover:bg-white/15 transition group">
+            <div className="flex items-center justify-between">
+              <div>
                 <p className="text-gray-300 text-sm">Total Alerts</p>
-                <p className="text-2xl font-bold text-white">{stats.total}</p>
+                <p className="text-3xl font-bold text-white group-hover:text-blue-400 transition">
+                  {stats.total}
+                </p>
+              </div>
+              <div className="bg-blue-500/20 p-3 rounded-lg group-hover:bg-blue-500/30 transition">
+                <Bell className="w-8 h-8 text-blue-400" />
               </div>
             </div>
           </div>
 
-          <div className="bg-white/10 backdrop-blur-xl rounded-xl p-6 border border-white/20">
-            <div className="flex items-center">
-              <div className="p-2 bg-green-500/20 rounded-lg">
-                <ToggleRight className="w-6 h-6 text-green-400" />
-              </div>
-              <div className="ml-4">
+          <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20 hover:bg-white/15 transition group">
+            <div className="flex items-center justify-between">
+              <div>
                 <p className="text-gray-300 text-sm">Active Alerts</p>
-                <p className="text-2xl font-bold text-white">{stats.active}</p>
+                <p className="text-3xl font-bold text-white group-hover:text-green-400 transition">
+                  {stats.active}
+                </p>
+              </div>
+              <div className="bg-green-500/20 p-3 rounded-lg group-hover:bg-green-500/30 transition">
+                <CheckCircle className="w-8 h-8 text-green-400" />
               </div>
             </div>
           </div>
 
-          <div className="bg-white/10 backdrop-blur-xl rounded-xl p-6 border border-white/20">
-            <div className="flex items-center">
-              <div className="p-2 bg-yellow-500/20 rounded-lg">
-                <Bell className="w-6 h-6 text-yellow-400" />
+          <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20 hover:bg-white/15 transition group">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-300 text-sm">Triggered Today</p>
+                <p className="text-3xl font-bold text-white group-hover:text-yellow-400 transition">
+                  {stats.triggered}
+                </p>
               </div>
-              <div className="ml-4">
-                <p className="text-gray-300 text-sm">Triggered Alerts</p>
-                <p className="text-2xl font-bold text-white">{stats.triggered}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white/10 backdrop-blur-xl rounded-xl p-6 border border-white/20">
-            <div className="flex items-center">
-              <div className="p-2 bg-red-500/20 rounded-lg">
-                <Zap className="w-6 h-6 text-red-400" />
-              </div>
-              <div className="ml-4">
-                <p className="text-gray-300 text-sm">Total Triggers</p>
-                <p className="text-2xl font-bold text-white">{stats.totalTriggers}</p>
+              <div className="bg-yellow-500/20 p-3 rounded-lg group-hover:bg-yellow-500/30 transition">
+                <AlertTriangle className="w-8 h-8 text-yellow-400" />
               </div>
             </div>
           </div>
         </div>
 
-        {/* Filters and Search */}
-        <div className="flex flex-col sm:flex-row items-center justify-between mb-8 space-y-4 sm:space-y-0">
-          <div className="flex items-center space-x-4">
-            <div className="flex space-x-1 bg-white/10 rounded-lg p-1">
-              <button
-                onClick={() => setFilter('all')}
-                className={`px-3 py-2 rounded-md text-sm font-medium transition ${
-                  filter === 'all' 
-                    ? 'bg-blue-600 text-white' 
-                    : 'text-gray-300 hover:text-white'
-                }`}
+        {/* Controls */}
+        <div className="mb-8">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
+            {/* Search and Filter */}
+            <div className="flex items-center space-x-4">
+              <div className="relative">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search alerts..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="bg-white/10 text-white pl-10 pr-4 py-2 rounded-lg border border-white/20 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <select
+                value={filter}
+                onChange={(e) => setFilter(e.target.value as 'all' | 'active' | 'inactive')}
+                className="bg-white/10 text-white px-4 py-2 rounded-lg border border-white/20 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                All ({alerts.length})
-              </button>
-              <button
-                onClick={() => setFilter('active')}
-                className={`px-3 py-2 rounded-md text-sm font-medium transition ${
-                  filter === 'active' 
-                    ? 'bg-blue-600 text-white' 
-                    : 'text-gray-300 hover:text-white'
-                }`}
-              >
-                Active ({alerts.filter(a => a.is_active).length})
-              </button>
-              <button
-                onClick={() => setFilter('inactive')}
-                className={`px-3 py-2 rounded-md text-sm font-medium transition ${
-                  filter === 'inactive' 
-                    ? 'bg-blue-600 text-white' 
-                    : 'text-gray-300 hover:text-white'
-                }`}
-              >
-                Inactive ({alerts.filter(a => !a.is_active).length})
-              </button>
+                <option value="all">All Alerts</option>
+                <option value="active">Active Only</option>
+                <option value="inactive">Inactive Only</option>
+              </select>
             </div>
 
-            <div className="flex space-x-1 bg-white/10 rounded-lg p-1">
+            {/* View Mode */}
+            <div className="flex bg-white/10 rounded-lg p-1">
               <button
                 onClick={() => setViewMode('grid')}
-                className={`px-3 py-2 rounded-md text-sm font-medium transition ${
-                  viewMode === 'grid' 
-                    ? 'bg-blue-600 text-white' 
+                className={`p-2 rounded transition ${
+                  viewMode === 'grid'
+                    ? 'bg-blue-600 text-white'
                     : 'text-gray-300 hover:text-white'
                 }`}
               >
-                Grid
+                <Grid className="w-4 h-4" />
               </button>
               <button
                 onClick={() => setViewMode('list')}
-                className={`px-3 py-2 rounded-md text-sm font-medium transition ${
-                  viewMode === 'list' 
-                    ? 'bg-blue-600 text-white' 
+                className={`p-2 rounded transition ${
+                  viewMode === 'list'
+                    ? 'bg-blue-600 text-white'
                     : 'text-gray-300 hover:text-white'
                 }`}
               >
-                List
+                <List className="w-4 h-4" />
               </button>
             </div>
-          </div>
-
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <input
-              type="text"
-              placeholder="Search alerts..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
           </div>
         </div>
 
         {/* Alerts Grid/List */}
-        {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="animate-pulse bg-white/10 rounded-xl h-48"></div>
-            ))}
-          </div>
-        ) : viewMode === 'list' ? (
-          <div className="space-y-4">
-            {filteredAlerts.map((alert) => (
-              <div key={alert.id} className="bg-white/10 backdrop-blur-xl rounded-lg p-6 border border-white/20 hover:bg-white/15 transition">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <div className={`p-2 rounded-lg ${getAlertTypeColor(alert.alert_type)}`}>
-                      {getAlertTypeIcon(alert.alert_type)}
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-bold text-white">{alert.name}</h3>
-                      <p className="text-gray-300 text-sm">{alert.condition}</p>
-                      <div className="flex items-center space-x-4 mt-2 text-xs text-gray-400">
-                        <span>Team: {alert.team || 'Any'}</span>
-                        <span>Type: {alert.alert_type}</span>
-                        <span>Threshold: {alert.threshold}</span>
-                        <span>Triggers: {alert.trigger_count}</span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center space-x-4">
-                    <div className="text-right">
-                      <p className="text-sm text-gray-300">Created</p>
-                      <p className="text-xs text-gray-400">{formatDate(alert.created_at)}</p>
-                    </div>
-                    
-                    <div className="flex items-center space-x-2">
-                      <button
-                        onClick={() => toggleAlert(alert.id)}
-                        className={`p-2 rounded-lg transition ${
-                          alert.is_active 
-                            ? 'bg-green-600/20 text-green-400 hover:bg-green-600/30' 
-                            : 'bg-gray-600/20 text-gray-400 hover:bg-gray-600/30'
-                        }`}
-                      >
-                        {alert.is_active ? <ToggleRight className="w-4 h-4" /> : <ToggleLeft className="w-4 h-4" />}
-                      </button>
-                      
-                      <button
-                        onClick={() => setSelectedAlert(alert)}
-                        className="p-2 bg-blue-600/20 text-blue-400 rounded-lg hover:bg-blue-600/30 transition"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </button>
-                      
-                      <button
-                        onClick={() => deleteAlert(alert.id)}
-                        className="p-2 bg-red-600/20 text-red-400 rounded-lg hover:bg-red-600/30 transition"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
+        {filteredAlerts.length === 0 ? (
+          <div className="text-center py-12">
+            <Bell className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-white mb-2">No alerts found</h3>
+            <p className="text-gray-300 mb-6">
+              {searchTerm || filter !== 'all' 
+                ? 'Try adjusting your search or filter criteria'
+                : "You haven't created any alerts yet"
+              }
+            </p>
+            {!searchTerm && filter === 'all' && (
+              <Link
+                href="/alerts/create"
+                className="inline-flex items-center bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Create Your First Alert
+              </Link>
+            )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredAlerts.map((alert) => (
-              <div key={alert.id} className="bg-white/10 backdrop-blur-xl rounded-xl p-6 border border-white/20 hover:bg-white/15 transition-all duration-300">
-                {/* Header */}
-                <div className="flex items-center justify-between mb-4">
-                  <div className={`p-2 rounded-lg ${getAlertTypeColor(alert.alert_type)}`}>
-                    {getAlertTypeIcon(alert.alert_type)}
-                  </div>
-                  <div className={`w-2 h-2 rounded-full ${alert.is_active ? 'bg-green-400' : 'bg-gray-400'}`}></div>
-                </div>
-
-                {/* Content */}
-                <div className="mb-4">
-                  <h3 className="text-lg font-bold text-white mb-2">{alert.name}</h3>
-                  <p className="text-gray-300 text-sm mb-3">{alert.condition}</p>
-                  
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div>
-                      <span className="text-gray-400">Team:</span>
-                      <span className="text-white ml-1">{alert.team || 'Any'}</span>
-                    </div>
-                    <div>
-                      <span className="text-gray-400">Type:</span>
-                      <span className="text-white ml-1">{alert.alert_type}</span>
-                    </div>
-                    <div>
-                      <span className="text-gray-400">Threshold:</span>
-                      <span className="text-white ml-1">{alert.threshold}</span>
-                    </div>
-                    <div>
-                      <span className="text-gray-400">Triggers:</span>
-                      <span className="text-white ml-1">{alert.trigger_count}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Footer */}
-                <div className="flex items-center justify-between">
-                  <div className="text-xs text-gray-400">
-                    {formatDate(alert.created_at)}
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={() => toggleAlert(alert.id)}
-                      className={`p-1 rounded transition ${
-                        alert.is_active 
-                          ? 'bg-green-600/20 text-green-400 hover:bg-green-600/30' 
-                          : 'bg-gray-600/20 text-gray-400 hover:bg-gray-600/30'
-                      }`}
-                    >
-                      {alert.is_active ? <ToggleRight className="w-3 h-3" /> : <ToggleLeft className="w-3 h-3" />}
-                    </button>
-                    
-                    <button
-                      onClick={() => setSelectedAlert(alert)}
-                      className="p-1 bg-blue-600/20 text-blue-400 rounded hover:bg-blue-600/30 transition"
-                    >
-                      <Eye className="w-3 h-3" />
-                    </button>
-                    
-                    <button
-                      onClick={() => deleteAlert(alert.id)}
-                      className="p-1 bg-red-600/20 text-red-400 rounded hover:bg-red-600/30 transition"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {filteredAlerts.length === 0 && !loading && (
-          <div className="text-center py-16">
-            <Target className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl font-bold text-white mb-2">No alerts found</h3>
-            <p className="text-gray-300 mb-6">
-              {searchTerm ? 'No alerts match your search criteria.' : 'You haven\'t created any alerts yet.'}
-            </p>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition flex items-center mx-auto"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Create Your First Alert
-            </button>
+          <div className={viewMode === 'grid' 
+            ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'
+            : 'space-y-4'
+          }>
+            {filteredAlerts.map(alert => 
+              viewMode === 'grid' ? renderAlertCard(alert) : renderAlertList(alert)
+            )}
           </div>
         )}
       </div>
-
-      {/* Alert Detail Modal */}
-      {selectedAlert && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white/10 backdrop-blur-xl rounded-xl p-6 border border-white/20 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-white">Alert Details</h2>
-              <button
-                onClick={() => setSelectedAlert(null)}
-                className="text-gray-400 hover:text-white"
-              >
-                ✕
-              </button>
-            </div>
-            
-            <div className="space-y-6">
-              <div className="bg-white/5 rounded-lg p-4">
-                <h3 className="text-lg font-bold text-white mb-3">Alert Information</h3>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="text-gray-400">Name:</span>
-                    <span className="text-white ml-2">{selectedAlert.name}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-400">Type:</span>
-                    <span className="text-white ml-2">{selectedAlert.alert_type}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-400">Team:</span>
-                    <span className="text-white ml-2">{selectedAlert.team || 'Any'}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-400">Threshold:</span>
-                    <span className="text-white ml-2">{selectedAlert.threshold}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-400">Status:</span>
-                    <span className={`ml-2 ${selectedAlert.is_active ? 'text-green-400' : 'text-gray-400'}`}>
-                      {selectedAlert.is_active ? 'Active' : 'Inactive'}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-gray-400">Triggers:</span>
-                    <span className="text-white ml-2">{selectedAlert.trigger_count}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white/5 rounded-lg p-4">
-                <h3 className="text-lg font-bold text-white mb-3">Condition</h3>
-                <p className="text-gray-300">{selectedAlert.condition}</p>
-              </div>
-
-              <div className="bg-white/5 rounded-lg p-4">
-                <h3 className="text-lg font-bold text-white mb-3">Timeline</h3>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Created:</span>
-                    <span className="text-white">{formatDate(selectedAlert.created_at)}</span>
-                  </div>
-                  {selectedAlert.last_triggered_at && (
-                    <div className="flex justify-between">
-                      <span className="text-gray-400">Last Triggered:</span>
-                      <span className="text-white">{formatDate(selectedAlert.last_triggered_at)}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex space-x-4">
-                <button
-                  onClick={() => toggleAlert(selectedAlert.id)}
-                  className={`flex-1 px-4 py-2 rounded-lg transition ${
-                    selectedAlert.is_active 
-                      ? 'bg-yellow-600 text-white hover:bg-yellow-700' 
-                      : 'bg-green-600 text-white hover:bg-green-700'
-                  }`}
-                >
-                  {selectedAlert.is_active ? 'Deactivate' : 'Activate'}
-                </button>
-                <button
-                  onClick={() => deleteAlert(selectedAlert.id)}
-                  className="flex-1 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition"
-                >
-                  Delete Alert
-                </button>
-                <button
-                  onClick={() => setSelectedAlert(null)}
-                  className="flex-1 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Create Alert Modal */}
-      {showCreateModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white/10 backdrop-blur-xl rounded-xl p-6 border border-white/20 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-white">Create New Alert</h2>
-              <button
-                onClick={() => setShowCreateModal(false)}
-                className="text-gray-400 hover:text-white"
-              >
-                ✕
-              </button>
-            </div>
-            
-            <div className="text-center py-8">
-              <Target className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-xl font-bold text-white mb-2">Advanced Alert Creation</h3>
-              <p className="text-gray-300 mb-6">
-                Create sophisticated alerts with detailed statistics, referee conditions, and advanced metrics.
-              </p>
-              <Link
-                href="/alerts/create"
-                className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition inline-flex items-center"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Start Creating Alert
-              </Link>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
+
+  function renderAlertCard(alert: Alert) {
+    return (
+      <div key={alert.id} className="bg-white/10 backdrop-blur-xl rounded-xl p-6 border border-white/20 hover:bg-white/15 transition-all duration-300 group">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-4">
+          <div className={`p-2 rounded-lg bg-gradient-to-r ${getAlertTypeColor(alert.alert_type)}`}>
+            {getAlertTypeIcon(alert.alert_type)}
+          </div>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => toggleAlert(alert.id)}
+              className={`p-2 rounded-lg transition ${
+                alert.is_active 
+                  ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30' 
+                  : 'bg-gray-500/20 text-gray-400 hover:bg-gray-500/30'
+              }`}
+            >
+              {alert.is_active ? <CheckCircle className="w-4 h-4" /> : <X className="w-4 h-4" />}
+            </button>
+            <button
+              onClick={() => deleteAlert(alert.id)}
+              className="p-2 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30 transition"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="mb-4">
+          <h3 className="text-lg font-semibold text-white mb-2 group-hover:text-blue-400 transition">
+            {alert.name}
+          </h3>
+          <p className="text-gray-300 text-sm mb-3">{alert.condition}</p>
+          
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <div className="flex items-center text-gray-300">
+              <Target className="w-4 h-4 mr-2 text-blue-400" />
+              <span>{alert.team}</span>
+            </div>
+            <div className="flex items-center text-gray-300">
+              <BarChart3 className="w-4 h-4 mr-2 text-green-400" />
+              <span>{alert.alert_type}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Stats */}
+        <div className="grid grid-cols-2 gap-3 mb-4 text-sm">
+          <div className="bg-white/5 p-3 rounded-lg text-center">
+            <div className="text-white font-bold">{alert.trigger_count}</div>
+            <div className="text-gray-400">Triggers</div>
+          </div>
+          <div className="bg-white/5 p-3 rounded-lg text-center">
+            <div className="text-white font-bold">{alert.threshold}</div>
+            <div className="text-gray-400">Threshold</div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-between text-xs text-gray-400">
+          <span>Created: {formatDate(alert.created_at)}</span>
+          {alert.last_triggered_at && (
+            <span>Last: {formatDate(alert.last_triggered_at)}</span>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  function renderAlertList(alert: Alert) {
+    return (
+      <div key={alert.id} className="bg-white/10 backdrop-blur-xl rounded-lg p-4 border border-white/20 hover:bg-white/15 transition">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <div className={`p-2 rounded-lg bg-gradient-to-r ${getAlertTypeColor(alert.alert_type)}`}>
+              {getAlertTypeIcon(alert.alert_type)}
+            </div>
+            <div>
+              <h3 className="text-white font-semibold">{alert.name}</h3>
+              <div className="flex items-center space-x-4 mt-1 text-sm text-gray-300">
+                <span>{alert.team}</span>
+                <span>•</span>
+                <span>{alert.alert_type}</span>
+                <span>•</span>
+                <span>{alert.trigger_count} triggers</span>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => toggleAlert(alert.id)}
+              className={`p-2 rounded-lg transition ${
+                alert.is_active 
+                  ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30' 
+                  : 'bg-gray-500/20 text-gray-400 hover:bg-gray-500/30'
+              }`}
+            >
+              {alert.is_active ? <CheckCircle className="w-4 h-4" /> : <X className="w-4 h-4" />}
+            </button>
+            <button
+              onClick={() => deleteAlert(alert.id)}
+              className="p-2 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30 transition"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
 } 

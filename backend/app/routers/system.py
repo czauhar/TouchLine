@@ -38,8 +38,10 @@ async def health_check():
 async def detailed_health_check():
     """Detailed health check with comprehensive metrics"""
     try:
+        # Generate a new health report
         health_report = await health_monitor.generate_health_report()
-        return health_report.get_health_summary()
+        # Return the summary
+        return health_monitor.get_health_summary()
     except Exception as e:
         return {
             "status": "unhealthy",

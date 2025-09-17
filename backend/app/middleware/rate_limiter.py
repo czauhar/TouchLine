@@ -28,10 +28,10 @@ class RateLimiter:
         
         # Rate limit configurations for different endpoints
         self.endpoint_configs = {
-            # Authentication endpoints - stricter limits
-            "/api/auth/login": RateLimitConfig(5, 20, 3),
-            "/api/auth/register": RateLimitConfig(3, 10, 2),
-            "/api/auth/refresh": RateLimitConfig(10, 50, 5),
+            # Authentication endpoints - more lenient for development
+            "/api/auth/login": RateLimitConfig(30, 200, 10),
+            "/api/auth/register": RateLimitConfig(20, 100, 8),
+            "/api/auth/refresh": RateLimitConfig(50, 300, 20),
             
             # API endpoints - moderate limits
             "/api/matches/live": RateLimitConfig(30, 300, 20),

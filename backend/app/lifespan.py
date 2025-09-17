@@ -19,10 +19,11 @@ async def lifespan(app):
     except Exception as e:
         print(f"❌ Failed to start background tasks: {e}")
     
-    # Start alert engine in background
+    # Start alert engine in background with optimized settings
     try:
+        # Re-enable alert engine with production-ready optimizations
         asyncio.create_task(match_monitor.start_monitoring())
-        print("🚨 Alert engine started")
+        print("🚨 Alert engine started with optimized monitoring")
     except Exception as e:
         print(f"❌ Failed to start alert engine: {e}")
     

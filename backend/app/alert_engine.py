@@ -14,6 +14,8 @@ from .analytics import (
     analytics_engine, MatchMetrics, AdvancedAlertCondition,
     Condition, ConditionType, Operator, LogicOperator, TimeWindow
 )
+from .services.custom_metrics import custom_metric_service
+from .services.pattern_recognition import pattern_recognition_service
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -57,9 +59,13 @@ class AlertCondition:
 class MatchMonitor:
     def __init__(self):
         self.running = False
-        self.monitoring_interval = 60  # seconds
+        self.monitoring_interval = 300  # 5 minutes instead of 60 seconds
         self.active_matches = {}  # fixture_id -> match_data
         self.alert_conditions = {}  # alert_id -> AlertCondition
+        self.last_api_call = 0
+        self.api_call_count = 0
+        self.max_api_calls_per_hour = 100  # Rate limiting
+        self.rate_limit_reset_time = 0
         
     async def start_monitoring(self):
         """Start the background monitoring service"""
@@ -83,9 +89,30 @@ class MatchMonitor:
         """Monitor all live matches and evaluate alerts"""
         logger.info("📊 Monitoring live matches...")
         
+        # Check rate limiting
+        current_time = asyncio.get_event_loop().time()
+        if current_time - self.rate_limit_reset_time >= 3600:  # Reset every hour
+            self.api_call_count = 0
+            self.rate_limit_reset_time = current_time
+        
+        if self.api_call_count >= self.max_api_calls_per_hour:
+            logger.warning("⚠️ Rate limit reached, skipping this monitoring cycle")
+            return
+        
         # Fetch live matches using efficient data service
         from .data_service import data_service
-        live_matches_data = await data_service.get_live_matches_efficient()
+        try:
+            live_matches_data = await data_service.get_live_matches_efficient()
+            self.api_call_count += 1
+            logger.info(f"📊 API call #{self.api_call_count}/{self.max_api_calls_per_hour}")
+        except Exception as e:
+            logger.error(f"Error fetching live matches: {e}")
+            return
+        
+        # Limit to first 20 matches to prevent API overload
+        if len(live_matches_data) > 20:
+            logger.info(f"📊 Limiting monitoring to 20 matches (found {len(live_matches_data)})")
+            live_matches_data = live_matches_data[:20]
         
         # Update active matches
         for match_data in live_matches_data:
@@ -107,6 +134,9 @@ class MatchMonitor:
         # Evaluate alerts for each active match
         for fixture_id, match_data in self.active_matches.items():
             await self.evaluate_match_alerts(fixture_id, match_data)
+            
+            # Advanced features: Pattern recognition and custom metrics
+            await self.analyze_advanced_features(fixture_id, match_data)
     
     async def load_active_alerts(self):
         """Load all active alerts from database"""
@@ -279,12 +309,19 @@ class MatchMonitor:
         except Exception as e:
             logger.error(f"Error evaluating alert {alert_id}: {e}")
     
-    async def evaluate_advanced_alert(self, alert_condition: AdvancedAlertCondition, match_data: Dict, metrics: MatchMetrics):
+    async def evaluate_advanced_alert(self, alert_condition: AdvancedAlertCondition, match_data, metrics: MatchMetrics):
         """Evaluate an advanced alert condition with multi-condition logic"""
         try:
             # Check if alert was already triggered for this match
-            match_info = sports_api.format_match_data(match_data)
-            if await self.alert_already_triggered(alert_condition.alert_id, match_info.get("external_id")):
+            # Handle both MatchData objects and dictionaries
+            if hasattr(match_data, 'external_id'):  # MatchData object
+                external_id = match_data.external_id
+                match_info = match_data
+            else:  # Dict object
+                match_info = sports_api.format_match_data(match_data)
+                external_id = match_info.get("external_id")
+            
+            if await self.alert_already_triggered(alert_condition.alert_id, external_id):
                 return False, ""
             
             # Evaluate the advanced condition
@@ -605,6 +642,83 @@ class MatchMonitor:
             
         except Exception as e:
             logger.error(f"Error recording alert history: {e}")
+    
+    async def analyze_advanced_features(self, fixture_id: int, match_data):
+        """Analyze advanced features: patterns and custom metrics"""
+        try:
+            # Pattern recognition
+            patterns = pattern_recognition_service.analyze_match(match_data, str(fixture_id))
+            
+            if patterns:
+                logger.info(f"🎯 Detected {len(patterns)} patterns for match {fixture_id}")
+                for pattern in patterns:
+                    if pattern_recognition_service.should_alert_pattern(pattern):
+                        await self.send_pattern_alert(pattern, match_data)
+            
+            # Custom metrics evaluation
+            # This would typically get user_id from match context
+            # For now, evaluate for a default user
+            custom_metrics = custom_metric_service.evaluate_user_metrics(1, match_data)
+            
+            if custom_metrics:
+                logger.info(f"📊 Evaluated {len(custom_metrics)} custom metrics for match {fixture_id}")
+                for metric_name, value in custom_metrics.items():
+                    if value > 0:  # Only log non-zero metrics
+                        logger.info(f"   • {metric_name}: {value:.2f}")
+                        
+        except Exception as e:
+            logger.error(f"Error analyzing advanced features for match {fixture_id}: {e}")
+    
+    async def send_pattern_alert(self, pattern, match_data):
+        """Send alert for detected pattern"""
+        try:
+            # Format pattern alert message
+            message = f"🎯 Pattern Detected: {pattern.name}\n"
+            message += f"Description: {pattern.description}\n"
+            message += f"Severity: {pattern.severity.value.upper()}\n"
+            message += f"Confidence: {pattern.confidence:.1%}\n"
+            message += f"Duration: {pattern.duration}\n"
+            
+            # Add match context
+            if hasattr(match_data, 'home_team'):
+                message += f"Match: {match_data.home_team} vs {match_data.away_team}\n"
+                message += f"Score: {match_data.home_score}-{match_data.away_score}\n"
+            
+            logger.info(f"🚨 Pattern Alert: {pattern.name} - {pattern.description}")
+            
+            # Send WebSocket notification
+            await self.send_websocket_pattern_notification(pattern, match_data, message)
+            
+        except Exception as e:
+            logger.error(f"Error sending pattern alert: {e}")
+    
+    async def send_websocket_pattern_notification(self, pattern, match_data, message: str):
+        """Send WebSocket notification for pattern"""
+        try:
+            from .websocket_manager import websocket_manager
+            
+            pattern_data = {
+                "pattern_id": pattern.pattern_id,
+                "pattern_name": pattern.name,
+                "pattern_description": pattern.description,
+                "severity": pattern.severity.value,
+                "confidence": pattern.confidence,
+                "match_info": {
+                    "home_team": match_data.home_team if hasattr(match_data, 'home_team') else "Unknown",
+                    "away_team": match_data.away_team if hasattr(match_data, 'away_team') else "Unknown",
+                    "home_score": match_data.home_score if hasattr(match_data, 'home_score') else 0,
+                    "away_score": match_data.away_score if hasattr(match_data, 'away_score') else 0
+                },
+                "message": message,
+                "timestamp": datetime.utcnow().isoformat()
+            }
+            
+            # Send to all connected users (broadcast)
+            await websocket_manager.broadcast_pattern_notification(pattern_data)
+            logger.info(f"📡 WebSocket pattern notification sent: {pattern.name}")
+            
+        except Exception as e:
+            logger.error(f"Error sending WebSocket pattern notification: {e}")
 
 # Global instance
 match_monitor = MatchMonitor() 

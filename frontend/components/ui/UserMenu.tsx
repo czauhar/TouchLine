@@ -12,7 +12,7 @@ export default function UserMenu() {
   return (
     <div className="relative">
       <button onClick={() => setOpen(v => !v)} className="flex items-center space-x-2 bg-gray-800 text-white px-4 py-2 rounded-lg hover:bg-gray-700">
-        <span>{user?.name || user?.email || 'User'}</span>
+        <span>{typeof user?.name === 'string' ? user.name : (user?.email || 'User')}</span>
         <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
       </button>
       {open && (

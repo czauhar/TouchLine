@@ -17,7 +17,33 @@ import {
   TrendingUp,
   Zap,
   Eye,
-  Plus
+  Plus,
+  Shield,
+  Crosshair,
+  Flag,
+  CreditCard,
+  Goal,
+  Timer,
+  Thermometer,
+  Wind,
+  Droplets,
+  Sun,
+  Moon,
+  Star,
+  TrendingDown,
+  Minus,
+  Equal,
+  Info,
+  ArrowLeft,
+  RefreshCw,
+  Filter,
+  Search,
+  Grid,
+  List,
+  Play,
+  Pause,
+  CheckCircle,
+  AlertTriangle
 } from 'lucide-react'
 
 interface Match {
@@ -64,6 +90,12 @@ interface Match {
     xg: { home: number; away: number }
     pressure: { home: number; away: number }
     momentum: { home: number; away: number }
+    passes?: { home: number; away: number; home_accuracy: number; away_accuracy: number }
+    tackles?: { home: number; away: number }
+    clearances?: { home: number; away: number }
+    saves?: { home: number; away: number }
+    offsides?: { home: number; away: number }
+    substitutions?: { home: number; away: number }
   }
   detailed_stats: any[]
   events: any[]
@@ -77,20 +109,23 @@ export default function MatchesPage() {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'live' | 'today'>('live')
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null)
-  const [viewMode, setViewMode] = useState<'cards' | 'list' | 'stats'>('cards')
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
+  const [searchTerm, setSearchTerm] = useState('')
+  const [refreshing, setRefreshing] = useState(false)
+  const [filterLeague, setFilterLeague] = useState('all')
 
   useEffect(() => {
     if (status === 'loading') return
-    if (!session) return
     
     fetchMatches()
     const interval = setInterval(fetchMatches, 30000) // Refresh every 30 seconds
     
     return () => clearInterval(interval)
-  }, [session, status])
+  }, [status])
 
   const fetchMatches = async () => {
     try {
+      setRefreshing(true)
       const [liveData, todayData] = await Promise.all([
         apiClient.getLiveMatches(),
         apiClient.getTodaysMatches()
@@ -101,21 +136,20 @@ export default function MatchesPage() {
       console.error('Error fetching matches:', error)
     } finally {
       setLoading(false)
+      setRefreshing(false)
     }
   }
 
   const formatTime = (dateString: string) => {
-    const date = new Date(dateString)
-    return date.toLocaleTimeString('en-US', { 
-      hour: '2-digit', 
+    return new Date(dateString).toLocaleTimeString('en-US', {
+      hour: '2-digit',
       minute: '2-digit',
-      hour12: true 
+      hour12: true
     })
   }
 
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString('en-US', { 
+    return new Date(dateString).toLocaleDateString('en-US', {
       weekday: 'short',
       month: 'short',
       day: 'numeric'
@@ -123,20 +157,34 @@ export default function MatchesPage() {
   }
 
   const getMatchStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'live': return 'text-red-500 bg-red-500/10'
-      case 'finished': return 'text-gray-500 bg-gray-500/10'
-      case 'scheduled': return 'text-blue-500 bg-blue-500/10'
-      default: return 'text-gray-400 bg-gray-400/10'
+    switch (status) {
+      case '1H':
+      case '2H':
+        return 'bg-green-500/20 text-green-400 border-green-500/30'
+      case 'HT':
+        return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
+      case 'FT':
+        return 'bg-blue-500/20 text-blue-400 border-blue-500/30'
+      case 'NS':
+        return 'bg-gray-500/20 text-gray-400 border-gray-500/30'
+      default:
+        return 'bg-gray-500/20 text-gray-400 border-gray-500/30'
     }
   }
 
   const getMatchStatusIcon = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'live': return <Activity className="w-4 h-4 animate-pulse" />
-      case 'finished': return <Trophy className="w-4 h-4" />
-      case 'scheduled': return <Clock className="w-4 h-4" />
-      default: return <Calendar className="w-4 h-4" />
+    switch (status) {
+      case '1H':
+      case '2H':
+        return <Play className="w-4 h-4 text-green-400" />
+      case 'HT':
+        return <Pause className="w-4 h-4 text-yellow-400" />
+      case 'FT':
+        return <CheckCircle className="w-4 h-4 text-blue-400" />
+      case 'NS':
+        return <Clock className="w-4 h-4 text-gray-400" />
+      default:
+        return <Info className="w-4 h-4 text-gray-400" />
     }
   }
 
@@ -144,79 +192,134 @@ export default function MatchesPage() {
     return activeTab === 'live' ? liveMatches : todaysMatches
   }
 
+  const renderWeatherIcon = (weather: any) => {
+    if (!weather) return null
+    
+    const condition = weather.condition?.toLowerCase() || ''
+    
+    if (condition.includes('sun') || condition.includes('clear')) return <Sun className="w-4 h-4 text-yellow-400" />
+    if (condition.includes('cloud')) return <Cloud className="w-4 h-4 text-gray-400" />
+    if (condition.includes('rain')) return <Droplets className="w-4 h-4 text-blue-400" />
+    if (condition.includes('snow')) return <Cloud className="w-4 h-4 text-blue-200" />
+    
+    return <Thermometer className="w-4 h-4" />
+  }
+
+  const filteredMatches = getCurrentMatches().filter(match => {
+    const matchesSearch = searchTerm === '' || 
+      (typeof match.teams.home.name === 'string' && match.teams.home.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (typeof match.teams.away.name === 'string' && match.teams.away.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (typeof match.league.name === 'string' && match.league.name.toLowerCase().includes(searchTerm.toLowerCase()))
+    
+    const matchesLeague = filterLeague === 'all' || 
+      (typeof match.league.name === 'string' && match.league.name === filterLeague)
+    
+    return matchesSearch && matchesLeague
+  })
+
+  const leagues = Array.from(new Set(getCurrentMatches().map(match => 
+    typeof match.league.name === 'string' ? match.league.name : 'Unknown'
+  )))
+
   const renderMatchCard = (match: Match) => (
-    <div key={match.id} className="bg-white/10 backdrop-blur-xl rounded-xl p-6 border border-white/20 hover:bg-white/15 transition-all duration-300">
+    <div key={match.id} className="bg-white/10 backdrop-blur-xl rounded-xl p-6 border border-white/20 hover:bg-white/15 transition-all duration-300 group">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center space-x-3">
-          {getMatchStatusIcon(match.fixture.status.short)}
-          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getMatchStatusColor(match.fixture.status.short)}`}>
-            {match.fixture.status.short} {match.fixture.status.elapsed > 0 && `(${match.fixture.status.elapsed}')`}
-          </span>
+          <div className={`p-2 rounded-lg ${getMatchStatusColor(match.fixture.status.short)}`}>
+            {getMatchStatusIcon(match.fixture.status.short)}
+          </div>
+          <div>
+            <span className={`px-3 py-1 rounded-full text-xs font-medium ${getMatchStatusColor(match.fixture.status.short)}`}>
+              {match.fixture.status.short} {match.fixture.status.elapsed > 0 && `(${match.fixture.status.elapsed}')`}
+            </span>
+          </div>
         </div>
         <div className="text-right">
-          <p className="text-sm text-gray-300">{match.league.name}</p>
+          <p className="text-sm text-gray-300 font-medium">{typeof match.league.name === 'string' ? match.league.name : 'League'}</p>
           <p className="text-xs text-gray-400">{formatDate(match.fixture.date)}</p>
         </div>
       </div>
 
       {/* Teams & Score */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-6">
         <div className="flex-1 text-center">
-          <div className="text-lg font-bold text-white mb-1">{match.teams.home.name}</div>
-          <div className="text-3xl font-bold text-white">{match.goals.home}</div>
+          <div className="text-lg font-bold text-white mb-2 group-hover:text-green-400 transition">
+            {typeof match.teams.home.name === 'string' ? match.teams.home.name : 'Home Team'}
+          </div>
+          <div className="text-4xl font-bold text-white group-hover:scale-110 transition">
+            {match.goals.home}
+          </div>
         </div>
-        <div className="mx-4 text-gray-400 font-bold">VS</div>
+        <div className="mx-6 text-gray-400 font-bold text-xl">VS</div>
         <div className="flex-1 text-center">
-          <div className="text-lg font-bold text-white mb-1">{match.teams.away.name}</div>
-          <div className="text-3xl font-bold text-white">{match.goals.away}</div>
+          <div className="text-lg font-bold text-white mb-2 group-hover:text-blue-400 transition">
+            {typeof match.teams.away.name === 'string' ? match.teams.away.name : 'Away Team'}
+          </div>
+          <div className="text-4xl font-bold text-white group-hover:scale-110 transition">
+            {match.goals.away}
+          </div>
         </div>
       </div>
 
       {/* Match Details */}
       <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
-        <div className="flex items-center text-gray-300">
-          <MapPin className="w-4 h-4 mr-2" />
-          <span className="truncate">{match.fixture.venue.name || 'Unknown'}</span>
+        <div className="flex items-center text-gray-300 bg-white/5 p-2 rounded-lg">
+          <MapPin className="w-4 h-4 mr-2 text-blue-400" />
+          <span className="truncate">{typeof match.fixture.venue.name === 'string' ? match.fixture.venue.name : 'Unknown'}</span>
         </div>
-        <div className="flex items-center text-gray-300">
-          <Users className="w-4 h-4 mr-2" />
+        <div className="flex items-center text-gray-300 bg-white/5 p-2 rounded-lg">
+          <Users className="w-4 h-4 mr-2 text-purple-400" />
           <span className="truncate">{match.fixture.referee || 'Unknown'}</span>
         </div>
       </div>
 
-      {/* Quick Stats */}
+      {/* Weather Info */}
+      {match.fixture.weather && (
+        <div className="flex items-center justify-center mb-4 text-sm text-gray-300 bg-white/5 p-2 rounded-lg">
+          {renderWeatherIcon(match.fixture.weather)}
+          <span className="ml-2">
+            {match.fixture.weather.temp}°C {match.fixture.weather.condition}
+          </span>
+        </div>
+      )}
+
+      {/* Enhanced Stats Grid */}
       {match.alert_metrics && (
-        <div className="grid grid-cols-3 gap-2 mb-4 text-xs">
-          <div className="text-center p-2 bg-white/5 rounded">
-            <div className="text-white font-bold">{match.alert_metrics.possession?.home || 50}%</div>
-            <div className="text-gray-400">Home Poss</div>
+        <div className="grid grid-cols-4 gap-2 mb-6 text-xs">
+          <div className="text-center p-3 bg-white/5 rounded-lg hover:bg-white/10 transition">
+            <div className="text-white font-bold text-lg">{match.alert_metrics.possession?.home || 50}%</div>
+            <div className="text-gray-400">Poss</div>
           </div>
-          <div className="text-center p-2 bg-white/5 rounded">
-            <div className="text-white font-bold">{match.alert_metrics.shots?.home || 0}</div>
-            <div className="text-gray-400">Home Shots</div>
+          <div className="text-center p-3 bg-white/5 rounded-lg hover:bg-white/10 transition">
+            <div className="text-white font-bold text-lg">{match.alert_metrics.shots?.home || 0}</div>
+            <div className="text-gray-400">Shots</div>
           </div>
-          <div className="text-center p-2 bg-white/5 rounded">
-            <div className="text-white font-bold">{match.alert_metrics.cards?.home_yellow || 0}</div>
-            <div className="text-gray-400">Home Cards</div>
+          <div className="text-center p-3 bg-white/5 rounded-lg hover:bg-white/10 transition">
+            <div className="text-white font-bold text-lg">{match.alert_metrics.corners?.home || 0}</div>
+            <div className="text-gray-400">Corners</div>
+          </div>
+          <div className="text-center p-3 bg-white/5 rounded-lg hover:bg-white/10 transition">
+            <div className="text-white font-bold text-lg">{match.alert_metrics.cards?.home_yellow || 0}</div>
+            <div className="text-gray-400">Cards</div>
           </div>
         </div>
       )}
 
       {/* Actions */}
-      <div className="flex space-x-2">
+      <div className="flex space-x-3">
         <button
           onClick={() => setSelectedMatch(match)}
-          className="flex-1 bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 transition flex items-center justify-center"
+          className="flex-1 bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 transition flex items-center justify-center font-medium"
         >
-          <Eye className="w-4 h-4 mr-1" />
+          <Eye className="w-4 h-4 mr-2" />
           Details
         </button>
         <Link
           href={`/alerts/create?match=${match.id}`}
-          className="flex-1 bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 transition flex items-center justify-center"
+          className="flex-1 bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 transition flex items-center justify-center font-medium"
         >
-          <Plus className="w-4 h-4 mr-1" />
+          <Plus className="w-4 h-4 mr-2" />
           Alert
         </Link>
       </div>
@@ -227,126 +330,48 @@ export default function MatchesPage() {
     <div key={match.id} className="bg-white/10 backdrop-blur-xl rounded-lg p-4 border border-white/20 hover:bg-white/15 transition">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          <div className="text-center">
-            <div className="text-sm text-gray-300">{formatTime(match.fixture.date)}</div>
-            <div className="text-xs text-gray-400">{formatDate(match.fixture.date)}</div>
-          </div>
-          <div className="flex items-center space-x-2">
+          <div className={`p-2 rounded-lg ${getMatchStatusColor(match.fixture.status.short)}`}>
             {getMatchStatusIcon(match.fixture.status.short)}
-            <span className={`px-2 py-1 rounded text-xs font-medium ${getMatchStatusColor(match.fixture.status.short)}`}>
-              {match.fixture.status.short}
-            </span>
+          </div>
+          <div>
+            <div className="flex items-center space-x-2">
+              <span className="text-white font-medium">{typeof match.teams.home.name === 'string' ? match.teams.home.name : 'Home Team'}</span>
+              <span className="text-2xl font-bold text-white">{match.goals.home}</span>
+              <span className="text-gray-400">-</span>
+              <span className="text-2xl font-bold text-white">{match.goals.away}</span>
+              <span className="text-white font-medium">{typeof match.teams.away.name === 'string' ? match.teams.away.name : 'Away Team'}</span>
+            </div>
+            <div className="flex items-center space-x-4 mt-1 text-sm text-gray-400">
+              <span>{typeof match.league.name === 'string' ? match.league.name : 'League'}</span>
+              <span>•</span>
+              <span>{match.fixture.status.short} {match.fixture.status.elapsed > 0 && `(${match.fixture.status.elapsed}')`}</span>
+            </div>
           </div>
         </div>
-        
-        <div className="flex items-center space-x-6">
-          <div className="text-center">
-            <div className="text-sm text-gray-300">{match.teams.home.name}</div>
-            <div className="text-lg font-bold text-white">{match.goals.home}</div>
-          </div>
-          <div className="text-gray-400 font-bold">-</div>
-          <div className="text-center">
-            <div className="text-sm text-gray-300">{match.teams.away.name}</div>
-            <div className="text-lg font-bold text-white">{match.goals.away}</div>
-          </div>
-        </div>
-
-        <div className="flex items-center space-x-2">
-          <span className="text-xs text-gray-400">{match.league.name}</span>
+        <div className="flex space-x-2">
           <button
             onClick={() => setSelectedMatch(match)}
-            className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 transition"
+            className="bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 transition"
           >
-            View
+            <Eye className="w-4 h-4" />
           </button>
+          <Link
+            href={`/alerts/create?match=${match.id}`}
+            className="bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 transition"
+          >
+            <Plus className="w-4 h-4" />
+          </Link>
         </div>
       </div>
     </div>
   )
 
-  const renderStatsView = () => {
-    const matches = getCurrentMatches()
-    const totalGoals = matches.reduce((sum, m) => sum + m.goals.home + m.goals.away, 0)
-    const totalCards = matches.reduce((sum, m) => {
-      const metrics = m.alert_metrics || {}
-      return sum + (metrics.cards?.home_yellow || 0) + (metrics.cards?.away_yellow || 0) + 
-             (metrics.cards?.home_red || 0) + (metrics.cards?.away_red || 0)
-    }, 0)
-    const totalShots = matches.reduce((sum, m) => {
-      const metrics = m.alert_metrics || {}
-      return sum + (metrics.shots?.home || 0) + (metrics.shots?.away || 0)
-    }, 0)
-
-    return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white/10 backdrop-blur-xl rounded-xl p-6 border border-white/20">
-          <div className="flex items-center">
-            <div className="p-2 bg-red-500/20 rounded-lg">
-              <Target className="w-6 h-6 text-red-400" />
-            </div>
-            <div className="ml-4">
-              <p className="text-gray-300 text-sm">Total Goals</p>
-              <p className="text-2xl font-bold text-white">{totalGoals}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white/10 backdrop-blur-xl rounded-xl p-6 border border-white/20">
-          <div className="flex items-center">
-            <div className="p-2 bg-yellow-500/20 rounded-lg">
-              <BarChart3 className="w-6 h-6 text-yellow-400" />
-            </div>
-            <div className="ml-4">
-              <p className="text-gray-300 text-sm">Total Shots</p>
-              <p className="text-2xl font-bold text-white">{totalShots}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white/10 backdrop-blur-xl rounded-xl p-6 border border-white/20">
-          <div className="flex items-center">
-            <div className="p-2 bg-orange-500/20 rounded-lg">
-              <Users className="w-6 h-6 text-orange-400" />
-            </div>
-            <div className="ml-4">
-              <p className="text-gray-300 text-sm">Total Cards</p>
-              <p className="text-2xl font-bold text-white">{totalCards}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white/10 backdrop-blur-xl rounded-xl p-6 border border-white/20">
-          <div className="flex items-center">
-            <div className="p-2 bg-green-500/20 rounded-lg">
-              <Activity className="w-6 h-6 text-green-400" />
-            </div>
-            <div className="ml-4">
-              <p className="text-gray-300 text-sm">Active Matches</p>
-              <p className="text-2xl font-bold text-white">{matches.length}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  if (status === 'loading') {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-white"></div>
-      </div>
-    )
-  }
-
-  if (!session) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-4xl font-bold text-white mb-4">Access Required</h1>
-          <p className="text-gray-300 mb-8">Please sign in to view matches</p>
-          <Link href="/auth/signin" className="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition">
-            Sign In
-          </Link>
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-white mx-auto"></div>
+          <p className="text-white mt-4 text-lg">Loading matches...</p>
         </div>
       </div>
     )
@@ -355,190 +380,142 @@ export default function MatchesPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
       {/* Header */}
-      <div className="bg-black/20 backdrop-blur-xl border-b border-white/10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-white">Match Center</h1>
-              <p className="text-gray-300">Live matches and detailed statistics</p>
+      <div className="bg-white/10 backdrop-blur-lg border-b border-white/20">
+        <div className="max-w-7xl mx-auto px-6 py-6">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between">
+            <div className="mb-4 md:mb-0">
+              <div className="flex items-center space-x-4 mb-2">
+                <Link href="/dashboard" className="text-gray-300 hover:text-white transition">
+                  <ArrowLeft className="w-5 h-5" />
+                </Link>
+                <h1 className="text-3xl font-bold text-white">Matches</h1>
+              </div>
+              <p className="text-gray-300">Live and upcoming matches with real-time statistics</p>
             </div>
             <div className="flex items-center space-x-4">
-              <Link href="/dashboard" className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
-                Dashboard
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Tabs */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex space-x-1 bg-white/10 rounded-lg p-1">
-            <button
-              onClick={() => setActiveTab('live')}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition ${
-                activeTab === 'live' 
-                  ? 'bg-blue-600 text-white' 
-                  : 'text-gray-300 hover:text-white'
-              }`}
-            >
-              <Activity className="w-4 h-4 inline mr-2" />
-              Live ({liveMatches.length})
-            </button>
-            <button
-              onClick={() => setActiveTab('today')}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition ${
-                activeTab === 'today' 
-                  ? 'bg-blue-600 text-white' 
-                  : 'text-gray-300 hover:text-white'
-              }`}
-            >
-              <Calendar className="w-4 h-4 inline mr-2" />
-              Today ({todaysMatches.length})
-            </button>
-          </div>
-
-          <div className="flex space-x-1 bg-white/10 rounded-lg p-1">
-            <button
-              onClick={() => setViewMode('cards')}
-              className={`px-3 py-2 rounded-md text-sm font-medium transition ${
-                viewMode === 'cards' 
-                  ? 'bg-blue-600 text-white' 
-                  : 'text-gray-300 hover:text-white'
-              }`}
-            >
-              Cards
-            </button>
-            <button
-              onClick={() => setViewMode('list')}
-              className={`px-3 py-2 rounded-md text-sm font-medium transition ${
-                viewMode === 'list' 
-                  ? 'bg-blue-600 text-white' 
-                  : 'text-gray-300 hover:text-white'
-              }`}
-            >
-              List
-            </button>
-            <button
-              onClick={() => setViewMode('stats')}
-              className={`px-3 py-2 rounded-md text-sm font-medium transition ${
-                viewMode === 'stats' 
-                  ? 'bg-blue-600 text-white' 
-                  : 'text-gray-300 hover:text-white'
-              }`}
-            >
-              Stats
-            </button>
-          </div>
-        </div>
-
-        {/* Content */}
-        {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="animate-pulse bg-white/10 rounded-xl h-64"></div>
-            ))}
-          </div>
-        ) : viewMode === 'stats' ? (
-          renderStatsView()
-        ) : viewMode === 'list' ? (
-          <div className="space-y-4">
-            {getCurrentMatches().map(renderMatchList)}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {getCurrentMatches().map(renderMatchCard)}
-          </div>
-        )}
-
-        {getCurrentMatches().length === 0 && !loading && (
-          <div className="text-center py-16">
-            <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl font-bold text-white mb-2">No matches found</h3>
-            <p className="text-gray-300">There are no {activeTab} matches at the moment.</p>
-          </div>
-        )}
-      </div>
-
-      {/* Match Detail Modal */}
-      {selectedMatch && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white/10 backdrop-blur-xl rounded-xl p-6 border border-white/20 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-white">Match Details</h2>
-              <button
-                onClick={() => setSelectedMatch(null)}
-                className="text-gray-400 hover:text-white"
+              <button 
+                onClick={fetchMatches}
+                disabled={refreshing}
+                className="flex items-center bg-white/10 text-white px-4 py-2 rounded-lg hover:bg-white/20 transition border border-white/20"
               >
-                ✕
+                <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+                Refresh
               </button>
             </div>
-            
-            <div className="space-y-6">
-              {/* Basic Info */}
-              <div className="bg-white/5 rounded-lg p-4">
-                <h3 className="text-lg font-bold text-white mb-3">Match Information</h3>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="text-gray-400">League:</span>
-                    <span className="text-white ml-2">{selectedMatch.league.name}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-400">Venue:</span>
-                    <span className="text-white ml-2">{selectedMatch.fixture.venue.name || 'Unknown'}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-400">Referee:</span>
-                    <span className="text-white ml-2">{selectedMatch.fixture.referee || 'Unknown'}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-400">Status:</span>
-                    <span className="text-white ml-2">{selectedMatch.fixture.status.short}</span>
-                  </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        {/* Tabs and Controls */}
+        <div className="mb-8">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
+            {/* Tabs */}
+            <div className="flex space-x-1 bg-white/10 rounded-lg p-1">
+              <button
+                onClick={() => setActiveTab('live')}
+                className={`px-6 py-2 rounded-md font-medium transition ${
+                  activeTab === 'live'
+                    ? 'bg-blue-600 text-white'
+                    : 'text-gray-300 hover:text-white'
+                }`}
+              >
+                <div className="flex items-center space-x-2">
+                  <Activity className="w-4 h-4" />
+                  <span>Live Matches ({liveMatches.length})</span>
                 </div>
+              </button>
+              <button
+                onClick={() => setActiveTab('today')}
+                className={`px-6 py-2 rounded-md font-medium transition ${
+                  activeTab === 'today'
+                    ? 'bg-blue-600 text-white'
+                    : 'text-gray-300 hover:text-white'
+                }`}
+              >
+                <div className="flex items-center space-x-2">
+                  <Calendar className="w-4 h-4" />
+                  <span>Today's Matches ({todaysMatches.length})</span>
+                </div>
+              </button>
+            </div>
+
+            {/* Controls */}
+            <div className="flex items-center space-x-4">
+              {/* Search */}
+              <div className="relative">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search matches..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="bg-white/10 text-white pl-10 pr-4 py-2 rounded-lg border border-white/20 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
               </div>
 
-              {/* Detailed Stats */}
-              {selectedMatch.alert_metrics && (
-                <div className="bg-white/5 rounded-lg p-4">
-                  <h3 className="text-lg font-bold text-white mb-3">Statistics</h3>
-                  <div className="grid grid-cols-3 gap-4 text-sm">
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-white">{selectedMatch.alert_metrics.possession?.home || 50}%</div>
-                      <div className="text-gray-400">Home Possession</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-white">{selectedMatch.alert_metrics.shots?.home || 0}</div>
-                      <div className="text-gray-400">Home Shots</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-white">{selectedMatch.alert_metrics.cards?.home_yellow || 0}</div>
-                      <div className="text-gray-400">Home Cards</div>
-                    </div>
-                  </div>
-                </div>
-              )}
+              {/* League Filter */}
+              <select
+                value={filterLeague}
+                onChange={(e) => setFilterLeague(e.target.value)}
+                className="bg-white/10 text-white px-4 py-2 rounded-lg border border-white/20 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="all">All Leagues</option>
+                {leagues.map((league) => (
+                  <option key={league} value={league}>{league}</option>
+                ))}
+              </select>
 
-              {/* Actions */}
-              <div className="flex space-x-4">
-                <Link
-                  href={`/alerts/create?match=${selectedMatch.id}`}
-                  className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition text-center"
-                >
-                  Create Alert for This Match
-                </Link>
+              {/* View Mode */}
+              <div className="flex bg-white/10 rounded-lg p-1">
                 <button
-                  onClick={() => setSelectedMatch(null)}
-                  className="flex-1 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition"
+                  onClick={() => setViewMode('grid')}
+                  className={`p-2 rounded transition ${
+                    viewMode === 'grid'
+                      ? 'bg-blue-600 text-white'
+                      : 'text-gray-300 hover:text-white'
+                  }`}
                 >
-                  Close
+                  <Grid className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setViewMode('list')}
+                  className={`p-2 rounded transition ${
+                    viewMode === 'list'
+                      ? 'bg-blue-600 text-white'
+                      : 'text-gray-300 hover:text-white'
+                  }`}
+                >
+                  <List className="w-4 h-4" />
                 </button>
               </div>
             </div>
           </div>
         </div>
-      )}
+
+        {/* Matches Grid/List */}
+        {filteredMatches.length === 0 ? (
+          <div className="text-center py-12">
+            <Activity className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-white mb-2">No matches found</h3>
+            <p className="text-gray-300">
+              {searchTerm || filterLeague !== 'all' 
+                ? 'Try adjusting your search or filter criteria'
+                : `No ${activeTab === 'live' ? 'live' : "today's"} matches available`
+              }
+            </p>
+          </div>
+        ) : (
+          <div className={viewMode === 'grid' 
+            ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'
+            : 'space-y-4'
+          }>
+            {filteredMatches.map(match => 
+              viewMode === 'grid' ? renderMatchCard(match) : renderMatchList(match)
+            )}
+          </div>
+        )}
+      </div>
     </div>
   )
 } 

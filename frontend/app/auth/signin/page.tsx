@@ -43,19 +43,26 @@ export default function SignInPage() {
     setIsLoading(true)
     
     try {
+      console.log('Attempting sign in with:', data.email)
       const result = await signIn('credentials', {
         email: data.email,
         password: data.password,
         redirect: false,
       })
 
+      console.log('Sign in result:', result)
+
       if (result?.error) {
+        console.error('Sign in error:', result.error)
         toast.error('Invalid email or password')
-      } else {
+      } else if (result?.ok) {
         toast.success('Welcome back!')
         router.push('/dashboard')
+      } else {
+        toast.error('Sign in failed. Please try again.')
       }
     } catch (error) {
+      console.error('Sign in exception:', error)
       toast.error('An error occurred. Please try again.')
     } finally {
       setIsLoading(false)

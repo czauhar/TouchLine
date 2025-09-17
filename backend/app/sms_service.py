@@ -60,7 +60,7 @@ class SMSService:
         
         return message
     
-    def is_configured(self) -> bool:
+    def check_configuration(self) -> bool:
         """Check if SMS service is properly configured"""
         return self.is_configured
 

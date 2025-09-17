@@ -226,3 +226,178 @@ async def sync_matches():
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error syncing matches: {str(e)}") 
+
+@router.get("/test")
+async def get_test_matches():
+    """Get test matches data for frontend testing"""
+    return {
+        "matches": [
+            {
+                "id": "test_1",
+                "fixture": {
+                    "id": 1,
+                    "date": "2025-07-27T15:00:00+00:00",
+                    "status": {
+                        "short": "1H",
+                        "elapsed": 25
+                    },
+                    "referee": "Test Referee",
+                    "venue": {
+                        "name": "Test Stadium"
+                    },
+                    "weather": {}
+                },
+                "teams": {
+                    "home": {
+                        "name": "Manchester United"
+                    },
+                    "away": {
+                        "name": "Liverpool"
+                    }
+                },
+                "goals": {
+                    "home": 2,
+                    "away": 1
+                },
+                "league": {
+                    "name": "Premier League"
+                },
+                "alert_metrics": {
+                    "basic": {
+                        "home_score": 2,
+                        "away_score": 1,
+                        "score_difference": 1,
+                        "total_goals": 3,
+                        "match_status": "1H",
+                        "elapsed_time": 25,
+                        "referee": "Test Referee",
+                        "venue": "Test Stadium",
+                        "weather": {}
+                    },
+                    "possession": {
+                        "home": 55,
+                        "away": 45
+                    },
+                    "shots": {
+                        "home": 8,
+                        "away": 5,
+                        "home_on_target": 4,
+                        "away_on_target": 2
+                    },
+                    "corners": {
+                        "home": 6,
+                        "away": 3
+                    },
+                    "fouls": {
+                        "home": 7,
+                        "away": 9
+                    },
+                    "cards": {
+                        "home_yellow": 1,
+                        "away_yellow": 2,
+                        "home_red": 0,
+                        "away_red": 0
+                    },
+                    "xg": {
+                        "home": 2.1,
+                        "away": 1.3
+                    },
+                    "pressure": {
+                        "home": 65,
+                        "away": 35
+                    },
+                    "momentum": {
+                        "home": 0.7,
+                        "away": 0.3
+                    }
+                },
+                "detailed_stats": [],
+                "events": [],
+                "lineups": []
+            },
+            {
+                "id": "test_2",
+                "fixture": {
+                    "id": 2,
+                    "date": "2025-07-27T17:30:00+00:00",
+                    "status": {
+                        "short": "NS",
+                        "elapsed": 0
+                    },
+                    "referee": "Another Referee",
+                    "venue": {
+                        "name": "Another Stadium"
+                    },
+                    "weather": {}
+                },
+                "teams": {
+                    "home": {
+                        "name": "Arsenal"
+                    },
+                    "away": {
+                        "name": "Chelsea"
+                    }
+                },
+                "goals": {
+                    "home": 0,
+                    "away": 0
+                },
+                "league": {
+                    "name": "Premier League"
+                },
+                "alert_metrics": {
+                    "basic": {
+                        "home_score": 0,
+                        "away_score": 0,
+                        "score_difference": 0,
+                        "total_goals": 0,
+                        "match_status": "NS",
+                        "elapsed_time": 0,
+                        "referee": "Another Referee",
+                        "venue": "Another Stadium",
+                        "weather": {}
+                    },
+                    "possession": {
+                        "home": 50,
+                        "away": 50
+                    },
+                    "shots": {
+                        "home": 0,
+                        "away": 0,
+                        "home_on_target": 0,
+                        "away_on_target": 0
+                    },
+                    "corners": {
+                        "home": 0,
+                        "away": 0
+                    },
+                    "fouls": {
+                        "home": 0,
+                        "away": 0
+                    },
+                    "cards": {
+                        "home_yellow": 0,
+                        "away_yellow": 0,
+                        "home_red": 0,
+                        "away_red": 0
+                    },
+                    "xg": {
+                        "home": 0.0,
+                        "away": 0.0
+                    },
+                    "pressure": {
+                        "home": 50,
+                        "away": 50
+                    },
+                    "momentum": {
+                        "home": 0.5,
+                        "away": 0.5
+                    }
+                },
+                "detailed_stats": [],
+                "events": [],
+                "lineups": []
+            }
+        ],
+        "count": 2
+    } 

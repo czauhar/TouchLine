@@ -507,12 +507,22 @@ class AnalyticsEngine:
     async def _evaluate_single_condition(
         self, 
         condition: Condition, 
-        match_data: Dict, 
+        match_data, 
         metrics: MatchMetrics
     ) -> tuple[bool, str]:
         """Evaluate a single condition"""
         try:
-            match_info = self._format_match_data(match_data)
+            # Handle both Dict and MatchData objects
+            if hasattr(match_data, 'home_team'):  # MatchData object
+                match_info = {
+                    "home_team": match_data.home_team,
+                    "away_team": match_data.away_team,
+                    "home_score": match_data.home_score,
+                    "away_score": match_data.away_score,
+                    "elapsed": match_data.elapsed_time or 0
+                }
+            else:  # Dict object
+                match_info = self._format_match_data(match_data)
             
             if condition.condition_type == ConditionType.GOALS:
                 return self._evaluate_goals_condition(condition, match_info)
@@ -753,12 +763,16 @@ class AnalyticsEngine:
         except Exception:
             return False
     
-    def _check_time_windows(self, alert_condition: AdvancedAlertCondition, match_data: Dict) -> bool:
+    def _check_time_windows(self, alert_condition: AdvancedAlertCondition, match_data) -> bool:
         """Check if current time is within any required time windows"""
         if not alert_condition.time_windows:
             return True
         
-        elapsed = match_data.get("fixture", {}).get("status", {}).get("elapsed", 0)
+        # Handle both Dict and MatchData objects
+        if hasattr(match_data, 'elapsed_time'):  # MatchData object
+            elapsed = match_data.elapsed_time or 0
+        else:  # Dict object
+            elapsed = match_data.get("fixture", {}).get("status", {}).get("elapsed", 0)
         
         for time_window in alert_condition.time_windows:
             if time_window.start_minute <= elapsed <= time_window.end_minute:
@@ -766,12 +780,16 @@ class AnalyticsEngine:
         
         return False
     
-    async def _check_sequences(self, alert_condition: AdvancedAlertCondition, match_data: Dict, metrics: MatchMetrics) -> bool:
+    async def _check_sequences(self, alert_condition: AdvancedAlertCondition, match_data, metrics: MatchMetrics) -> bool:
         """Check if sequence conditions are met"""
         if not alert_condition.sequences:
             return True
         
-        fixture_id = match_data.get("fixture", {}).get("id", 0)
+        # Handle both Dict and MatchData objects
+        if hasattr(match_data, 'external_id'):  # MatchData object
+            fixture_id = int(match_data.external_id)
+        else:  # Dict object
+            fixture_id = match_data.get("fixture", {}).get("id", 0)
         current_time = datetime.utcnow()
         
         for sequence in alert_condition.sequences:

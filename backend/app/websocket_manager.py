@@ -98,6 +98,15 @@ class WebSocketManager:
         )
         await self.send_personal_message(message, user_id)
     
+    async def broadcast_pattern_notification(self, pattern_data: dict):
+        """Send a pattern notification to all broadcast connections"""
+        message = WebSocketMessage(
+            type="pattern_detected",
+            data=pattern_data,
+            timestamp=datetime.utcnow().isoformat()
+        )
+        await self.broadcast_message(message)
+    
     async def send_match_update(self, match_data: dict):
         """Send match update to all broadcast connections"""
         message = WebSocketMessage(

@@ -141,14 +141,15 @@ class HealthMonitor:
             db = next(get_db())
             
             # Test connection with a simple query
-            result = db.execute("SELECT 1").fetchone()
+            from sqlalchemy import text
+            result = db.execute(text("SELECT 1")).fetchone()
             connection_status = result is not None
             
             # Get table count
-            tables = db.execute("""
+            tables = db.execute(text("""
                 SELECT name FROM sqlite_master 
                 WHERE type='table' AND name NOT LIKE 'sqlite_%'
-            """).fetchall()
+            """)).fetchall()
             table_count = len(tables)
             
             # Get active connections (approximate)
@@ -221,7 +222,7 @@ class HealthMonitor:
         try:
             start_time = time.time()
             # Test SMS service configuration (don't actually send)
-            sms_config_valid = sms_service.is_configured()
+            sms_config_valid = sms_service.check_configuration()
             sms_service_response_time = time.time() - start_time
             sms_service_status = sms_config_valid
             
@@ -251,44 +252,45 @@ class HealthMonitor:
     async def get_alert_metrics(self) -> AlertMetrics:
         """Get alert system metrics"""
         try:
+            from sqlalchemy import text
             db = next(get_db())
             
             # Get active alerts count
-            active_alerts = db.execute("SELECT COUNT(*) FROM alerts WHERE is_active = 1").scalar()
+            active_alerts = db.execute(text("SELECT COUNT(*) FROM alerts WHERE is_active = 1")).scalar()
             
             # Get today's triggered alerts
             today = datetime.utcnow().date()
-            alerts_triggered_today = db.execute("""
+            alerts_triggered_today = db.execute(text("""
                 SELECT COUNT(*) FROM alert_history 
-                WHERE DATE(triggered_at) = ?
-            """, (today,)).scalar()
+                WHERE DATE(triggered_at) = :today
+            """), {"today": today}).scalar()
             
             # Get SMS metrics for today
-            sms_sent_today = db.execute("""
+            sms_sent_today = db.execute(text("""
                 SELECT COUNT(*) FROM alert_history 
-                WHERE DATE(triggered_at) = ? AND sms_sent = 1
-            """, (today,)).scalar()
+                WHERE DATE(triggered_at) = :today AND sms_sent = 1
+            """), {"today": today}).scalar()
             
-            sms_failed_today = db.execute("""
+            sms_failed_today = db.execute(text("""
                 SELECT COUNT(*) FROM alert_history 
-                WHERE DATE(triggered_at) = ? AND sms_sent = 0
-            """, (today,)).scalar()
+                WHERE DATE(triggered_at) = :today AND sms_sent = 0
+            """), {"today": today}).scalar()
             
             # Get average response time (approximate)
-            response_times = db.execute("""
+            response_times = db.execute(text("""
                 SELECT AVG(CAST((julianday(triggered_at) - julianday(created_at)) * 86400 AS INTEGER))
                 FROM alert_history ah
                 JOIN alerts a ON ah.alert_id = a.id
                 WHERE ah.triggered_at >= datetime('now', '-1 hour')
-            """).scalar()
+            """)).scalar()
             
             average_response_time = response_times or 0.0
             
             # Get last trigger
-            last_trigger = db.execute("""
+            last_trigger = db.execute(text("""
                 SELECT triggered_at FROM alert_history 
                 ORDER BY triggered_at DESC LIMIT 1
-            """).scalar()
+            """)).scalar()
             
             last_trigger_dt = datetime.fromisoformat(last_trigger) if last_trigger else None
             

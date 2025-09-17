@@ -192,10 +192,10 @@ class SportsAPIService:
         """Extract key metrics for alert creation"""
         metrics = {
             "basic": {
-                "home_score": match.get("goals", {}).get("home", 0),
-                "away_score": match.get("goals", {}).get("away", 0),
-                "score_difference": abs(match.get("goals", {}).get("home", 0) - match.get("goals", {}).get("away", 0)),
-                "total_goals": match.get("goals", {}).get("home", 0) + match.get("goals", {}).get("away", 0),
+                "home_score": match.get("goals", {}).get("home", 0) or 0,
+                "away_score": match.get("goals", {}).get("away", 0) or 0,
+                "score_difference": abs((match.get("goals", {}).get("home", 0) or 0) - (match.get("goals", {}).get("away", 0) or 0)),
+                "total_goals": (match.get("goals", {}).get("home", 0) or 0) + (match.get("goals", {}).get("away", 0) or 0),
                 "match_status": match.get("fixture", {}).get("status", {}).get("short", "Unknown"),
                 "elapsed_time": match.get("fixture", {}).get("status", {}).get("elapsed", 0),
                 "referee": match.get("fixture", {}).get("referee", "Unknown"),
@@ -234,32 +234,72 @@ class SportsAPIService:
                     stat_type = stat.get("type")
                     stat_value = stat.get("value")
                     
-                    # Ensure stat_value is a string or number, not a dict
+                    # Handle different stat_value types
                     if isinstance(stat_value, dict):
-                        stat_value = str(stat_value)
+                        # If it's a dict, try to extract a meaningful value
+                        stat_value = stat_value.get("value", "0")
+                    elif not isinstance(stat_value, (str, int, float)):
+                        stat_value = str(stat_value) if stat_value is not None else "0"
                     
                     if stat_type == "Ball Possession":
-                        percentage = int(stat_value.replace("%", "")) if stat_value and isinstance(stat_value, str) else 50
+                        if isinstance(stat_value, str) and "%" in str(stat_value):
+                            percentage = int(str(stat_value).replace("%", ""))
+                        elif isinstance(stat_value, (int, float)):
+                            percentage = int(stat_value)
+                        else:
+                            percentage = 50
                         metrics["possession"][team_key] = percentage
                     elif stat_type == "Total Shots":
-                        metrics["shots"][team_key] = int(stat_value) if stat_value else 0
+                        try:
+                            metrics["shots"][team_key] = int(stat_value) if stat_value else 0
+                        except (ValueError, TypeError):
+                            metrics["shots"][team_key] = 0
                     elif stat_type == "Shots on Goal":
-                        metrics["shots"][f"{team_key}_on_target"] = int(stat_value) if stat_value else 0
+                        try:
+                            metrics["shots"][f"{team_key}_on_target"] = int(stat_value) if stat_value else 0
+                        except (ValueError, TypeError):
+                            metrics["shots"][f"{team_key}_on_target"] = 0
                     elif stat_type == "Corner Kicks":
-                        metrics["corners"][team_key] = int(stat_value) if stat_value else 0
+                        try:
+                            metrics["corners"][team_key] = int(stat_value) if stat_value else 0
+                        except (ValueError, TypeError):
+                            metrics["corners"][team_key] = 0
                     elif stat_type == "Fouls":
-                        metrics["fouls"][team_key] = int(stat_value) if stat_value else 0
+                        try:
+                            metrics["fouls"][team_key] = int(stat_value) if stat_value else 0
+                        except (ValueError, TypeError):
+                            metrics["fouls"][team_key] = 0
                     elif stat_type == "Yellow Cards":
-                        metrics["cards"][f"{team_key}_yellow"] = int(stat_value) if stat_value else 0
+                        try:
+                            metrics["cards"][f"{team_key}_yellow"] = int(stat_value) if stat_value else 0
+                        except (ValueError, TypeError):
+                            metrics["cards"][f"{team_key}_yellow"] = 0
                     elif stat_type == "Red Cards":
-                        metrics["cards"][f"{team_key}_red"] = int(stat_value) if stat_value else 0
+                        try:
+                            metrics["cards"][f"{team_key}_red"] = int(stat_value) if stat_value else 0
+                        except (ValueError, TypeError):
+                            metrics["cards"][f"{team_key}_red"] = 0
                     elif stat_type == "Offsides":
-                        metrics["offsides"][team_key] = int(stat_value) if stat_value else 0
+                        try:
+                            metrics["offsides"][team_key] = int(stat_value) if stat_value else 0
+                        except (ValueError, TypeError):
+                            metrics["offsides"][team_key] = 0
                     elif stat_type == "Passes":
-                        metrics["passes"][team_key] = int(stat_value) if stat_value else 0
+                        try:
+                            metrics["passes"][team_key] = int(stat_value) if stat_value else 0
+                        except (ValueError, TypeError):
+                            metrics["passes"][team_key] = 0
                     elif stat_type == "Passes %":
-                        percentage = int(stat_value.replace("%", "")) if stat_value and isinstance(stat_value, str) else 0
-                        metrics["passes"][f"{team_key}_accuracy"] = percentage
+                        try:
+                            if isinstance(stat_value, str) and "%" in str(stat_value):
+                                percentage = int(str(stat_value).replace("%", ""))
+                            elif isinstance(stat_value, (int, float)):
+                                percentage = int(stat_value)
+                            else:
+                                percentage = 0
+                            metrics["passes"][f"{team_key}_accuracy"] = percentage
+                        except (ValueError, TypeError):
+                            metrics["passes"][f"{team_key}_accuracy"] = 0
 
         # Extract from events
         if events and isinstance(events, list):

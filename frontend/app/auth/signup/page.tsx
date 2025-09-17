@@ -34,16 +34,28 @@ export default function SignupPage() {
   const onSubmit = async (data: SignupForm) => {
     setIsLoading(true)
     try {
+      console.log('Attempting registration for:', data.email)
       const res = await apiClient.register(data)
+      console.log('Registration successful:', res)
+      
       // After successful registration, sign in
-      await signIn('credentials', {
+      const signInResult = await signIn('credentials', {
         email: data.email,
         password: data.password,
         redirect: false,
       })
-      toast.success('Account created!')
-      router.push('/dashboard')
+      
+      console.log('Auto sign in result:', signInResult)
+      
+      if (signInResult?.ok) {
+        toast.success('Account created and signed in!')
+        router.push('/dashboard')
+      } else {
+        toast.success('Account created! Please sign in.')
+        router.push('/auth/signin')
+      }
     } catch (error: any) {
+      console.error('Registration error:', error)
       toast.error(error.message || 'Registration failed')
     } finally {
       setIsLoading(false)

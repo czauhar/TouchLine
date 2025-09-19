@@ -4,7 +4,7 @@ from fastapi.responses import JSONResponse
 import os
 import time
 from dotenv import load_dotenv
-from app.routers import matches, alerts, system, websocket, analytics
+from app.routers import matches, alerts, system, websocket, analytics, demo
 from app.lifespan import lifespan
 from app.core.config import settings
 from app.core.exceptions import TouchLineException, handle_touchline_exception
@@ -97,6 +97,7 @@ app.include_router(matches.router)
 app.include_router(alerts.router)
 app.include_router(websocket.router)
 app.include_router(analytics.router)
+app.include_router(demo.router)
 
 if __name__ == "__main__":
     import uvicorn

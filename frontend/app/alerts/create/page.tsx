@@ -307,37 +307,43 @@ export default function CreateAlertPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-      {/* Header */}
-      <div className="bg-black/20 backdrop-blur-xl border-b border-white/10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 relative overflow-hidden">
+      {/* Animated Background */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl animate-float"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl animate-float" style={{animationDelay: '2s'}}></div>
+      </div>
+
+      {/* Enhanced Header */}
+      <div className="relative bg-white/10 backdrop-blur-xl border-b border-white/20 shadow-2xl">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <Link href="/alerts" className="text-gray-400 hover:text-white transition">
+            <div className="flex items-center space-x-6">
+              <Link href="/alerts" className="text-gray-400 hover:text-white transition-all duration-300 hover:scale-110">
                 <ArrowLeft className="w-6 h-6" />
               </Link>
               <div>
-                <h1 className="text-3xl font-bold text-white">Create Advanced Alert</h1>
-                <p className="text-gray-300">Build sophisticated alerts with detailed metrics</p>
+                <h1 className="text-4xl font-black text-gradient mb-2">Create Advanced Alert</h1>
+                <p className="text-gray-300 text-lg">Build sophisticated alerts with detailed metrics</p>
               </div>
             </div>
             <div className="flex items-center space-x-4">
               <button
                 onClick={() => setShowPreview(true)}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition flex items-center"
+                className="btn-secondary flex items-center"
               >
-                <Eye className="w-4 h-4 mr-2" />
+                <Eye className="w-5 h-5 mr-2" />
                 Preview
               </button>
               <button
                 onClick={createAlert}
                 disabled={saving}
-                className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition flex items-center disabled:opacity-50"
+                className="btn-success flex items-center disabled:opacity-50"
               >
                 {saving ? (
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
                 ) : (
-                  <Save className="w-4 h-4 mr-2" />
+                  <Save className="w-5 h-5 mr-2" />
                 )}
                 {saving ? 'Creating...' : 'Create Alert'}
               </button>
@@ -350,70 +356,74 @@ export default function CreateAlertPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Form */}
           <div className="lg:col-span-2 space-y-8">
-            {/* Basic Information */}
-            <div className="bg-white/10 backdrop-blur-xl rounded-xl p-6 border border-white/20">
-              <h2 className="text-xl font-bold text-white mb-6 flex items-center">
-                <Target className="w-5 h-5 mr-2" />
+            {/* Enhanced Basic Information */}
+            <div className="card-elevated p-8 animate-slide-in-up">
+              <h2 className="text-2xl font-bold text-white mb-8 flex items-center">
+                <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl flex items-center justify-center mr-4">
+                  <Target className="w-5 h-5 text-white" />
+                </div>
                 Basic Information
               </h2>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Alert Name</label>
+                  <label className="block text-lg font-semibold text-gray-300 mb-3">Alert Name</label>
                   <input
                     type="text"
                     value={form.name}
                     onChange={(e) => setForm(prev => ({ ...prev, name: e.target.value }))}
-                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="input-primary text-lg"
                     placeholder="Enter alert name..."
                   />
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Team</label>
+                  <label className="block text-lg font-semibold text-gray-300 mb-3">Team</label>
                   <input
                     type="text"
                     value={form.team}
                     onChange={(e) => setForm(prev => ({ ...prev, team: e.target.value }))}
-                    className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="input-primary text-lg"
                     placeholder="Team name (optional)"
                   />
                 </div>
               </div>
               
-              <div className="mt-6">
-                <label className="block text-sm font-medium text-gray-300 mb-2">Description</label>
+              <div className="mt-8">
+                <label className="block text-lg font-semibold text-gray-300 mb-3">Description</label>
                 <textarea
                   value={form.description}
                   onChange={(e) => setForm(prev => ({ ...prev, description: e.target.value }))}
-                  rows={3}
-                  className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  rows={4}
+                  className="input-primary text-lg resize-none"
                   placeholder="Describe what this alert monitors..."
                 />
               </div>
             </div>
 
-            {/* Conditions */}
-            <div className="bg-white/10 backdrop-blur-xl rounded-xl p-6 border border-white/20">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold text-white flex items-center">
-                  <Layers className="w-5 h-5 mr-2" />
+            {/* Enhanced Conditions */}
+            <div className="card-elevated p-8 animate-slide-in-up" style={{animationDelay: '0.1s'}}>
+              <div className="flex items-center justify-between mb-8">
+                <h2 className="text-2xl font-bold text-white flex items-center">
+                  <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-blue-500 rounded-xl flex items-center justify-center mr-4">
+                    <Layers className="w-5 h-5 text-white" />
+                  </div>
                   Alert Conditions
                 </h2>
                 <div className="flex items-center space-x-4">
                   <select
                     value={form.logicOperator}
                     onChange={(e) => setForm(prev => ({ ...prev, logicOperator: e.target.value as 'AND' | 'OR' }))}
-                    className="px-3 py-1 bg-white/10 border border-white/20 rounded text-white text-sm"
+                    className="input-secondary text-sm"
                   >
                     <option value="AND">ALL conditions (AND)</option>
                     <option value="OR">ANY condition (OR)</option>
                   </select>
                   <button
                     onClick={addCondition}
-                    className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 transition flex items-center"
+                    className="btn-primary text-sm px-4 py-2 flex items-center"
                   >
-                    <Plus className="w-3 h-3 mr-1" />
+                    <Plus className="w-4 h-4 mr-2" />
                     Add Condition
                   </button>
                 </div>

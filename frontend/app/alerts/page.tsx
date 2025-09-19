@@ -194,34 +194,40 @@ export default function AlertsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-      {/* Header */}
-      <div className="bg-white/10 backdrop-blur-lg border-b border-white/20">
-        <div className="max-w-7xl mx-auto px-6 py-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 relative overflow-hidden">
+      {/* Animated Background */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl animate-float"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl animate-float" style={{animationDelay: '2s'}}></div>
+      </div>
+
+      {/* Enhanced Header */}
+      <div className="relative bg-white/10 backdrop-blur-xl border-b border-white/20 shadow-2xl">
+        <div className="max-w-7xl mx-auto px-6 py-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-            <div className="mb-4 md:mb-0">
-              <div className="flex items-center space-x-4 mb-2">
-                <Link href="/dashboard" className="text-gray-300 hover:text-white transition">
-                  <ArrowLeft className="w-5 h-5" />
+            <div className="mb-6 md:mb-0">
+              <div className="flex items-center space-x-6 mb-4">
+                <Link href="/dashboard" className="text-gray-300 hover:text-white transition-all duration-300 hover:scale-110">
+                  <ArrowLeft className="w-6 h-6" />
                 </Link>
-                <h1 className="text-3xl font-bold text-white">Alerts</h1>
+                <h1 className="text-4xl font-black text-gradient">Alerts</h1>
               </div>
-              <p className="text-gray-300">Manage your sports alerts and notifications</p>
+              <p className="text-gray-300 text-lg">Manage your sports alerts and notifications</p>
             </div>
             <div className="flex items-center space-x-4">
               <button 
                 onClick={fetchData}
                 disabled={refreshing}
-                className="flex items-center bg-white/10 text-white px-4 py-2 rounded-lg hover:bg-white/20 transition border border-white/20"
+                className="btn-secondary flex items-center"
               >
-                <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`w-5 h-5 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
                 Refresh
               </button>
               <Link
                 href="/alerts/create"
-                className="flex items-center bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+                className="btn-primary flex items-center"
               >
-                <Plus className="w-4 h-4 mr-2" />
+                <Plus className="w-5 h-5 mr-2" />
                 Create Alert
               </Link>
             </div>
@@ -230,71 +236,71 @@ export default function AlertsPage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-6 py-8">
-        {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20 hover:bg-white/15 transition group">
+        {/* Enhanced Stats Overview */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+          <div className="card-elevated p-8 animate-scale-in group">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-300 text-sm">Total Alerts</p>
-                <p className="text-3xl font-bold text-white group-hover:text-blue-400 transition">
+                <p className="text-gray-300 text-lg font-medium mb-2">Total Alerts</p>
+                <p className="text-4xl font-black text-white group-hover:text-gradient-primary transition-all duration-300">
                   {stats.total}
                 </p>
               </div>
-              <div className="bg-blue-500/20 p-3 rounded-lg group-hover:bg-blue-500/30 transition">
-                <Bell className="w-8 h-8 text-blue-400" />
+              <div className="bg-gradient-to-r from-blue-500/20 to-blue-600/20 p-4 rounded-2xl group-hover:from-blue-500/30 group-hover:to-blue-600/30 transition-all duration-300">
+                <Bell className="w-10 h-10 text-blue-400 group-hover:scale-110 transition-transform duration-300" />
               </div>
             </div>
           </div>
 
-          <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20 hover:bg-white/15 transition group">
+          <div className="card-elevated p-8 animate-scale-in group" style={{animationDelay: '0.1s'}}>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-300 text-sm">Active Alerts</p>
-                <p className="text-3xl font-bold text-white group-hover:text-green-400 transition">
+                <p className="text-gray-300 text-lg font-medium mb-2">Active Alerts</p>
+                <p className="text-4xl font-black text-white group-hover:text-gradient-secondary transition-all duration-300">
                   {stats.active}
                 </p>
               </div>
-              <div className="bg-green-500/20 p-3 rounded-lg group-hover:bg-green-500/30 transition">
-                <CheckCircle className="w-8 h-8 text-green-400" />
+              <div className="bg-gradient-to-r from-green-500/20 to-emerald-500/20 p-4 rounded-2xl group-hover:from-green-500/30 group-hover:to-emerald-500/30 transition-all duration-300">
+                <CheckCircle className="w-10 h-10 text-green-400 group-hover:scale-110 transition-transform duration-300" />
               </div>
             </div>
           </div>
 
-          <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20 hover:bg-white/15 transition group">
+          <div className="card-elevated p-8 animate-scale-in group" style={{animationDelay: '0.2s'}}>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-300 text-sm">Triggered Today</p>
-                <p className="text-3xl font-bold text-white group-hover:text-yellow-400 transition">
+                <p className="text-gray-300 text-lg font-medium mb-2">Triggered Today</p>
+                <p className="text-4xl font-black text-white group-hover:text-gradient-accent transition-all duration-300">
                   {stats.triggered}
                 </p>
               </div>
-              <div className="bg-yellow-500/20 p-3 rounded-lg group-hover:bg-yellow-500/30 transition">
-                <AlertTriangle className="w-8 h-8 text-yellow-400" />
+              <div className="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 p-4 rounded-2xl group-hover:from-yellow-500/30 group-hover:to-orange-500/30 transition-all duration-300">
+                <AlertTriangle className="w-10 h-10 text-yellow-400 group-hover:scale-110 transition-transform duration-300" />
               </div>
             </div>
           </div>
         </div>
 
-        {/* Controls */}
-        <div className="mb-8">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
+        {/* Enhanced Controls */}
+        <div className="mb-12">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-6 lg:space-y-0">
             {/* Search and Filter */}
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-6">
               <div className="relative">
-                <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <Search className="w-5 h-5 absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <input
                   type="text"
                   placeholder="Search alerts..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="bg-white/10 text-white pl-10 pr-4 py-2 rounded-lg border border-white/20 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="input-primary pl-12 pr-4 py-3 text-lg"
                 />
               </div>
 
               <select
                 value={filter}
                 onChange={(e) => setFilter(e.target.value as 'all' | 'active' | 'inactive')}
-                className="bg-white/10 text-white px-4 py-2 rounded-lg border border-white/20 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="input-primary text-lg px-4 py-3"
               >
                 <option value="all">All Alerts</option>
                 <option value="active">Active Only</option>
@@ -302,38 +308,45 @@ export default function AlertsPage() {
               </select>
             </div>
 
-            {/* View Mode */}
-            <div className="flex bg-white/10 rounded-lg p-1">
+            {/* Enhanced View Mode */}
+            <div className="flex bg-white/10 rounded-2xl p-2">
               <button
                 onClick={() => setViewMode('grid')}
-                className={`p-2 rounded transition ${
+                className={`p-3 rounded-xl transition-all duration-300 flex items-center space-x-2 ${
                   viewMode === 'grid'
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-300 hover:text-white'
+                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg'
+                    : 'text-gray-300 hover:text-white hover:bg-white/10'
                 }`}
               >
-                <Grid className="w-4 h-4" />
+                <Grid className="w-5 h-5" />
+                <span className="font-medium">Grid</span>
               </button>
               <button
                 onClick={() => setViewMode('list')}
-                className={`p-2 rounded transition ${
+                className={`p-3 rounded-xl transition-all duration-300 flex items-center space-x-2 ${
                   viewMode === 'list'
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-300 hover:text-white'
+                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg'
+                    : 'text-gray-300 hover:text-white hover:bg-white/10'
                 }`}
               >
-                <List className="w-4 h-4" />
+                <List className="w-5 h-5" />
+                <span className="font-medium">List</span>
               </button>
             </div>
           </div>
         </div>
 
-        {/* Alerts Grid/List */}
+        {/* Enhanced Alerts Grid/List */}
         {filteredAlerts.length === 0 ? (
-          <div className="text-center py-12">
-            <Bell className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-white mb-2">No alerts found</h3>
-            <p className="text-gray-300 mb-6">
+          <div className="text-center py-20 animate-fade-in">
+            <div className="relative inline-block mb-8">
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-full blur-2xl"></div>
+              <div className="relative bg-white/10 backdrop-blur-xl rounded-full p-8 border border-white/20">
+                <Bell className="w-20 h-20 text-gray-400" />
+              </div>
+            </div>
+            <h3 className="text-3xl font-bold text-white mb-4">No alerts found</h3>
+            <p className="text-gray-300 mb-8 text-lg max-w-md mx-auto">
               {searchTerm || filter !== 'all' 
                 ? 'Try adjusting your search or filter criteria'
                 : "You haven't created any alerts yet"
@@ -342,20 +355,20 @@ export default function AlertsPage() {
             {!searchTerm && filter === 'all' && (
               <Link
                 href="/alerts/create"
-                className="inline-flex items-center bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition"
+                className="btn-primary text-lg px-8 py-4 inline-flex items-center"
               >
-                <Plus className="w-4 h-4 mr-2" />
+                <Plus className="w-6 h-6 mr-3" />
                 Create Your First Alert
               </Link>
             )}
           </div>
         ) : (
           <div className={viewMode === 'grid' 
-            ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'
-            : 'space-y-4'
+            ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8'
+            : 'space-y-6'
           }>
-            {filteredAlerts.map(alert => 
-              viewMode === 'grid' ? renderAlertCard(alert) : renderAlertList(alert)
+            {filteredAlerts.map((alert, index) => 
+              viewMode === 'grid' ? renderAlertCard(alert, index) : renderAlertList(alert, index)
             )}
           </div>
         )}
@@ -363,111 +376,118 @@ export default function AlertsPage() {
     </div>
   )
 
-  function renderAlertCard(alert: Alert) {
+  function renderAlertCard(alert: Alert, index: number) {
     return (
-      <div key={alert.id} className="bg-white/10 backdrop-blur-xl rounded-xl p-6 border border-white/20 hover:bg-white/15 transition-all duration-300 group">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-4">
-          <div className={`p-2 rounded-lg bg-gradient-to-r ${getAlertTypeColor(alert.alert_type)}`}>
+      <div key={alert.id} className="card-interactive p-8 animate-slide-in-up group" style={{animationDelay: `${index * 0.1}s`}}>
+        {/* Enhanced Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div className={`p-3 rounded-2xl bg-gradient-to-r ${getAlertTypeColor(alert.alert_type)} shadow-lg group-hover:scale-110 transition-transform duration-300`}>
             {getAlertTypeIcon(alert.alert_type)}
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-3">
             <button
               onClick={() => toggleAlert(alert.id)}
-              className={`p-2 rounded-lg transition ${
+              className={`p-3 rounded-xl transition-all duration-300 ${
                 alert.is_active 
-                  ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30' 
-                  : 'bg-gray-500/20 text-gray-400 hover:bg-gray-500/30'
+                  ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30 hover:scale-110' 
+                  : 'bg-gray-500/20 text-gray-400 hover:bg-gray-500/30 hover:scale-110'
               }`}
             >
-              {alert.is_active ? <CheckCircle className="w-4 h-4" /> : <X className="w-4 h-4" />}
+              {alert.is_active ? <CheckCircle className="w-5 h-5" /> : <X className="w-5 h-5" />}
             </button>
             <button
               onClick={() => deleteAlert(alert.id)}
-              className="p-2 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30 transition"
+              className="p-3 rounded-xl bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-all duration-300 hover:scale-110"
             >
-              <Trash2 className="w-4 h-4" />
+              <Trash2 className="w-5 h-5" />
             </button>
           </div>
         </div>
 
-        {/* Content */}
-        <div className="mb-4">
-          <h3 className="text-lg font-semibold text-white mb-2 group-hover:text-blue-400 transition">
+        {/* Enhanced Content */}
+        <div className="mb-6">
+          <h3 className="text-2xl font-bold text-white mb-3 group-hover:text-gradient-primary transition-all duration-300">
             {alert.name}
           </h3>
-          <p className="text-gray-300 text-sm mb-3">{alert.condition}</p>
+          <p className="text-gray-300 text-lg mb-4">{alert.condition}</p>
           
-          <div className="grid grid-cols-2 gap-3 text-sm">
-            <div className="flex items-center text-gray-300">
-              <Target className="w-4 h-4 mr-2 text-blue-400" />
-              <span>{alert.team}</span>
+          <div className="grid grid-cols-2 gap-4 text-lg">
+            <div className="flex items-center text-gray-300 bg-white/5 p-3 rounded-xl">
+              <Target className="w-5 h-5 mr-3 text-blue-400" />
+              <span className="font-medium">{alert.team}</span>
             </div>
-            <div className="flex items-center text-gray-300">
-              <BarChart3 className="w-4 h-4 mr-2 text-green-400" />
-              <span>{alert.alert_type}</span>
+            <div className="flex items-center text-gray-300 bg-white/5 p-3 rounded-xl">
+              <BarChart3 className="w-5 h-5 mr-3 text-green-400" />
+              <span className="font-medium">{alert.alert_type}</span>
             </div>
           </div>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 gap-3 mb-4 text-sm">
-          <div className="bg-white/5 p-3 rounded-lg text-center">
-            <div className="text-white font-bold">{alert.trigger_count}</div>
-            <div className="text-gray-400">Triggers</div>
+        {/* Enhanced Stats */}
+        <div className="grid grid-cols-2 gap-4 mb-6">
+          <div className="bg-white/10 p-4 rounded-xl text-center group-hover:bg-white/15 transition-all duration-300">
+            <div className="text-2xl font-bold text-white mb-1">{alert.trigger_count}</div>
+            <div className="text-gray-400 font-medium">Triggers</div>
           </div>
-          <div className="bg-white/5 p-3 rounded-lg text-center">
-            <div className="text-white font-bold">{alert.threshold}</div>
-            <div className="text-gray-400">Threshold</div>
+          <div className="bg-white/10 p-4 rounded-xl text-center group-hover:bg-white/15 transition-all duration-300">
+            <div className="text-2xl font-bold text-white mb-1">{alert.threshold}</div>
+            <div className="text-gray-400 font-medium">Threshold</div>
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="flex items-center justify-between text-xs text-gray-400">
-          <span>Created: {formatDate(alert.created_at)}</span>
+        {/* Enhanced Footer */}
+        <div className="flex items-center justify-between text-sm text-gray-400">
+          <span className="font-medium">Created: {formatDate(alert.created_at)}</span>
           {alert.last_triggered_at && (
-            <span>Last: {formatDate(alert.last_triggered_at)}</span>
+            <span className="font-medium">Last: {formatDate(alert.last_triggered_at)}</span>
           )}
         </div>
       </div>
     )
   }
 
-  function renderAlertList(alert: Alert) {
+  function renderAlertList(alert: Alert, index: number) {
     return (
-      <div key={alert.id} className="bg-white/10 backdrop-blur-xl rounded-lg p-4 border border-white/20 hover:bg-white/15 transition">
+      <div key={alert.id} className="card p-6 animate-slide-in-up group" style={{animationDelay: `${index * 0.1}s`}}>
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <div className={`p-2 rounded-lg bg-gradient-to-r ${getAlertTypeColor(alert.alert_type)}`}>
+          <div className="flex items-center space-x-6">
+            <div className={`p-4 rounded-2xl bg-gradient-to-r ${getAlertTypeColor(alert.alert_type)} shadow-lg group-hover:scale-110 transition-transform duration-300`}>
               {getAlertTypeIcon(alert.alert_type)}
             </div>
             <div>
-              <h3 className="text-white font-semibold">{alert.name}</h3>
-              <div className="flex items-center space-x-4 mt-1 text-sm text-gray-300">
-                <span>{alert.team}</span>
-                <span>•</span>
-                <span>{alert.alert_type}</span>
-                <span>•</span>
-                <span>{alert.trigger_count} triggers</span>
+              <h3 className="text-2xl font-bold text-white mb-2 group-hover:text-gradient-primary transition-all duration-300">{alert.name}</h3>
+              <div className="flex items-center space-x-6 text-lg text-gray-300">
+                <div className="flex items-center">
+                  <Target className="w-5 h-5 mr-2 text-blue-400" />
+                  <span className="font-medium">{alert.team}</span>
+                </div>
+                <div className="flex items-center">
+                  <BarChart3 className="w-5 h-5 mr-2 text-green-400" />
+                  <span className="font-medium">{alert.alert_type}</span>
+                </div>
+                <div className="flex items-center">
+                  <Bell className="w-5 h-5 mr-2 text-yellow-400" />
+                  <span className="font-medium">{alert.trigger_count} triggers</span>
+                </div>
               </div>
             </div>
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-3">
             <button
               onClick={() => toggleAlert(alert.id)}
-              className={`p-2 rounded-lg transition ${
+              className={`p-3 rounded-xl transition-all duration-300 ${
                 alert.is_active 
-                  ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30' 
-                  : 'bg-gray-500/20 text-gray-400 hover:bg-gray-500/30'
+                  ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30 hover:scale-110' 
+                  : 'bg-gray-500/20 text-gray-400 hover:bg-gray-500/30 hover:scale-110'
               }`}
             >
-              {alert.is_active ? <CheckCircle className="w-4 h-4" /> : <X className="w-4 h-4" />}
+              {alert.is_active ? <CheckCircle className="w-5 h-5" /> : <X className="w-5 h-5" />}
             </button>
             <button
               onClick={() => deleteAlert(alert.id)}
-              className="p-2 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30 transition"
+              className="p-3 rounded-xl bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-all duration-300 hover:scale-110"
             >
-              <Trash2 className="w-4 h-4" />
+              <Trash2 className="w-5 h-5" />
             </button>
           </div>
         </div>

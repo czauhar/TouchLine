@@ -177,9 +177,9 @@ class ApiClient {
     return this.request('/api/user/me')
   }
 
-  async updateProfile(userData: { name?: string; phone_number?: string }) {
+  async updateProfile(userData: { name?: string; phone_number?: string; password?: string }) {
     return this.request('/api/user/me', {
-      method: 'PUT',
+      method: 'PATCH',
       body: JSON.stringify(userData),
     })
   }
@@ -243,4 +243,4 @@ class ApiClient {
   }
 }
 
-export const apiClient = new ApiClient() 
+export const apiClient = new ApiClient(process.env.NEXT_PUBLIC_API_URL || 'http://68.183.59.147:8000') 

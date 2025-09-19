@@ -24,7 +24,7 @@ const nextConfig = {
   },
   // Image optimization
   images: {
-    domains: ['localhost'],
+    domains: ['localhost', '68.183.59.147'],
     formats: ['image/webp', 'image/avif'],
   },
   // Compression and optimization
@@ -40,7 +40,7 @@ const nextConfig = {
       // Proxy API requests to backend
       {
         source: '/api/backend/:path*',
-        destination: 'http://localhost:8000/:path*',
+        destination: 'http://68.183.59.147:8000/:path*',
       },
     ]
   },

@@ -4,11 +4,8 @@ import os
 from .models import Base
 from .core.config import settings
 
-# Use settings for database URL, but ensure correct path for SQLite
+# Use settings for database URL
 DATABASE_URL = settings.DATABASE_URL
-if DATABASE_URL.startswith('sqlite:///./'):
-    # Convert relative path to absolute path in app directory
-    DATABASE_URL = DATABASE_URL.replace('sqlite:///./', 'sqlite:///app/')
 
 # Create engine with proper connection pool settings
 engine = create_engine(

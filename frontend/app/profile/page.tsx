@@ -3,11 +3,13 @@
 import Link from 'next/link'
 import { useSession, signOut } from 'next-auth/react'
 import { useState } from 'react'
-import { User, Mail, Phone, Settings, LogOut, ArrowLeft } from 'lucide-react'
+import { User, Mail, Phone, Settings, LogOut, ArrowLeft, MessageSquare, CheckCircle, AlertTriangle } from 'lucide-react'
 
 export default function ProfilePage() {
   const { data: session, status } = useSession()
   const [isLoading, setIsLoading] = useState(false)
+  const [smsTestStatus, setSmsTestStatus] = useState<'idle' | 'sending' | 'success' | 'error'>('idle')
+  const [smsTestMessage, setSmsTestMessage] = useState('')
   const user = session?.user || {}
 
   const handleSignOut = async () => {
@@ -18,6 +20,43 @@ export default function ProfilePage() {
       console.error('Sign out error:', error)
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const handleSmsTest = async () => {
+    if (!(user as any)?.phone_number) {
+      setSmsTestStatus('error')
+      setSmsTestMessage('No phone number registered. Please update your profile.')
+      return
+    }
+
+    setSmsTestStatus('sending')
+    setSmsTestMessage('')
+
+    try {
+      const response = await fetch('/api/sms/test', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          to_number: (user as any).phone_number,
+          message: 'TouchLine Test: Your SMS notifications are working! 🎉'
+        })
+      })
+
+      const result = await response.json()
+
+      if (response.ok && result.success) {
+        setSmsTestStatus('success')
+        setSmsTestMessage('Test SMS sent successfully! Check your phone.')
+      } else {
+        setSmsTestStatus('error')
+        setSmsTestMessage(result.error || 'Failed to send test SMS')
+      }
+    } catch (error) {
+      setSmsTestStatus('error')
+      setSmsTestMessage('Network error. Please try again.')
     }
   }
 
@@ -99,6 +138,74 @@ export default function ProfilePage() {
                 </div>
               )}
             </div>
+
+            {/* SMS Test Section */}
+            {typeof (user as any)?.phone_number === 'string' && (user as any)?.phone_number ? (
+              <div className="mb-8">
+                <div className="bg-gradient-to-r from-green-600/20 to-blue-600/20 rounded-xl p-6 border border-green-500/30">
+                  <div className="flex items-center mb-4">
+                    <MessageSquare className="w-6 h-6 text-green-400 mr-3" />
+                    <h3 className="text-xl font-semibold text-white">SMS Notifications</h3>
+                  </div>
+                  <p className="text-gray-300 mb-4">
+                    Test your SMS notifications to make sure you'll receive alerts on your phone.
+                  </p>
+                  
+                  <button
+                    onClick={handleSmsTest}
+                    disabled={smsTestStatus === 'sending'}
+                    className="w-full flex items-center justify-center gap-2 bg-green-600 text-white px-6 py-3 rounded-xl hover:bg-green-700 transition-all duration-300 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {smsTestStatus === 'sending' ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        Sending Test SMS...
+                      </>
+                    ) : (
+                      <>
+                        <MessageSquare className="w-5 h-5" />
+                        Send Test SMS
+                      </>
+                    )}
+                  </button>
+
+                  {/* Status Message */}
+                  {smsTestMessage && (
+                    <div className={`mt-4 p-3 rounded-lg flex items-center gap-2 ${
+                      smsTestStatus === 'success' 
+                        ? 'bg-green-500/20 text-green-300 border border-green-500/30' 
+                        : 'bg-red-500/20 text-red-300 border border-red-500/30'
+                    }`}>
+                      {smsTestStatus === 'success' ? (
+                        <CheckCircle className="w-5 h-5" />
+                      ) : (
+                        <AlertTriangle className="w-5 h-5" />
+                      )}
+                      <span>{smsTestMessage}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="mb-8">
+                <div className="bg-gradient-to-r from-yellow-600/20 to-orange-600/20 rounded-xl p-6 border border-yellow-500/30">
+                  <div className="flex items-center mb-4">
+                    <MessageSquare className="w-6 h-6 text-yellow-400 mr-3" />
+                    <h3 className="text-xl font-semibold text-white">SMS Notifications</h3>
+                  </div>
+                  <p className="text-gray-300 mb-4">
+                    Add a phone number to your profile to receive SMS alerts for your sports notifications.
+                  </p>
+                  <Link 
+                    href="/settings" 
+                    className="inline-flex items-center gap-2 bg-yellow-600 text-white px-6 py-3 rounded-xl hover:bg-yellow-700 transition-all duration-300 font-medium"
+                  >
+                    <Settings className="w-5 h-5" />
+                    Add Phone Number
+                  </Link>
+                </div>
+              </div>
+            )}
 
             {/* Actions */}
             <div className="flex flex-col sm:flex-row gap-4">

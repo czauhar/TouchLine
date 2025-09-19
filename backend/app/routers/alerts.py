@@ -13,9 +13,12 @@ import json
 
 class AlertCreate(BaseModel):
     name: str
+    description: str
+    match_id: int = None
+    team: str
     conditions: str  # JSON string with alert conditions
 
-@router.post("/")
+@router.post("")
 async def create_alert(
     alert_data: AlertCreate,
     db: Session = Depends(get_db),
@@ -166,7 +169,7 @@ async def create_advanced_alert(alert_data: AlertCreate, conditions: dict, db: S
         "created_at": alert.created_at.isoformat()
     }
 
-@router.get("/")
+@router.get("")
 async def get_all_alerts(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """Get all alerts"""
     try:

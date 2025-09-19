@@ -2,26 +2,26 @@ import { NextResponse } from 'next/server'
 
 export async function GET() {
   try {
-    console.log('Frontend health API: Fetching from backend...')
+    console.log('Frontend detailed health API: Fetching from backend...')
     const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/health/detailed`, {
       headers: {
         'Content-Type': 'application/json',
       },
     })
 
-    console.log('Frontend health API: Backend response status:', response.status)
+    console.log('Frontend detailed health API: Backend response status:', response.status)
     if (!response.ok) {
       throw new Error(`Backend responded with status: ${response.status}`)
     }
 
     const data = await response.json()
-    console.log('Frontend health API: Backend data:', JSON.stringify(data, null, 2))
+    console.log('Frontend detailed health API: Backend data:', JSON.stringify(data, null, 2))
     return NextResponse.json(data)
   } catch (error) {
-    console.error('Error fetching health data:', error)
+    console.error('Error fetching detailed health data:', error)
     return NextResponse.json(
       { 
-        error: 'Failed to fetch health data',
+        error: 'Failed to fetch detailed health data',
         details: error instanceof Error ? error.message : 'Unknown error',
         status: 'unknown',
         last_check: new Date().toISOString(),
@@ -49,4 +49,4 @@ export async function GET() {
       { status: 500 }
     )
   }
-} 
+}

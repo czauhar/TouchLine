@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useSession } from 'next-auth/react'
 import { apiClient } from '../../lib/auth'
 import Link from 'next/link'
@@ -81,6 +81,52 @@ export default function Dashboard() {
   const [error, setError] = useState<string | null>(null)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const [refreshing, setRefreshing] = useState(false)
+  const [wsConnected, setWsConnected] = useState(false)
+  const wsRef = useRef<WebSocket | null>(null)
+
+  const connectWebSocket = () => {
+    try {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+      const wsUrl = `${protocol}//${window.location.host}/ws/broadcast`
+      
+      const ws = new WebSocket(wsUrl)
+      wsRef.current = ws
+
+      ws.onopen = () => {
+        console.log('Dashboard WebSocket connected')
+        setWsConnected(true)
+        ws.send(JSON.stringify({ type: 'ping' }))
+      }
+
+      ws.onmessage = (event) => {
+        try {
+          const message = JSON.parse(event.data)
+          if (message.type === 'health_update') {
+            // Update health data in real-time
+            setDashboardData(prev => prev ? {
+              ...prev,
+              healthData: message.data
+            } : null)
+          }
+        } catch (error) {
+          console.error('Error parsing WebSocket message:', error)
+        }
+      }
+
+      ws.onclose = () => {
+        console.log('Dashboard WebSocket disconnected')
+        setWsConnected(false)
+        // Attempt to reconnect after 5 seconds
+        setTimeout(connectWebSocket, 5000)
+      }
+
+      ws.onerror = (error) => {
+        console.error('Dashboard WebSocket error:', error)
+      }
+    } catch (error) {
+      console.error('Error connecting dashboard WebSocket:', error)
+    }
+  }
 
   const fetchDashboardData = async () => {
     try {
@@ -106,7 +152,7 @@ export default function Dashboard() {
           sports_api: 'unknown',
           alert_engine: 'unknown'
         })),
-        fetch('/api/health').then(res => res.json()).catch(() => ({
+        fetch('/api/health/detailed').then(res => res.json()).catch(() => ({
           status: 'unknown',
           last_check: new Date().toISOString(),
           system: { cpu_percent: 0, memory_percent: 0, disk_percent: 0 },
@@ -153,11 +199,17 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchDashboardData()
+    connectWebSocket()
     
-    // Refresh data every 30 seconds
-    const interval = setInterval(fetchDashboardData, 30000)
+    // Refresh data every 60 seconds (reduced frequency for better performance)
+    const interval = setInterval(fetchDashboardData, 60000)
     
-    return () => clearInterval(interval)
+    return () => {
+      clearInterval(interval)
+      if (wsRef.current) {
+        wsRef.current.close()
+      }
+    }
   }, [])
 
   const getStatusColor = (status: string) => {
@@ -274,6 +326,12 @@ export default function Dashboard() {
               </p>
             </div>
             <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2">
+                <div className={`w-2 h-2 rounded-full ${wsConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                <span className="text-sm text-gray-300">
+                  {wsConnected ? 'Real-time Connected' : 'Real-time Disconnected'}
+                </span>
+              </div>
               <button 
                 onClick={fetchDashboardData}
                 disabled={refreshing}
@@ -387,17 +445,17 @@ export default function Dashboard() {
                 <div>
                   <div className="flex justify-between text-sm mb-2">
                     <span className="text-gray-300">CPU Usage</span>
-                    <span className={getMetricColor(dashboardData.healthData.system.cpu_percent, { warning: 70, critical: 90 })}>
-                      {dashboardData.healthData.system.cpu_percent.toFixed(1)}%
+                    <span className={getMetricColor(dashboardData.healthData?.system?.cpu_percent || 0, { warning: 70, critical: 90 })}>
+                      {(dashboardData.healthData?.system?.cpu_percent || 0).toFixed(1)}%
                     </span>
                   </div>
                   <div className="w-full bg-gray-700 rounded-full h-3">
                     <div 
                       className={`h-3 rounded-full transition-all duration-500 ${
-                        dashboardData.healthData.system.cpu_percent >= 90 ? 'bg-red-500' :
-                        dashboardData.healthData.system.cpu_percent >= 70 ? 'bg-yellow-500' : 'bg-green-500'
+                        (dashboardData.healthData?.system?.cpu_percent || 0) >= 90 ? 'bg-red-500' :
+                        (dashboardData.healthData?.system?.cpu_percent || 0) >= 70 ? 'bg-yellow-500' : 'bg-green-500'
                       }`}
-                      style={{ width: `${Math.min(dashboardData.healthData.system.cpu_percent, 100)}%` }}
+                      style={{ width: `${Math.min(dashboardData.healthData?.system?.cpu_percent || 0, 100)}%` }}
                     ></div>
                   </div>
                 </div>
@@ -405,17 +463,17 @@ export default function Dashboard() {
                 <div>
                   <div className="flex justify-between text-sm mb-2">
                     <span className="text-gray-300">Memory Usage</span>
-                    <span className={getMetricColor(dashboardData.healthData.system.memory_percent, { warning: 80, critical: 95 })}>
-                      {dashboardData.healthData.system.memory_percent.toFixed(1)}%
+                    <span className={getMetricColor(dashboardData.healthData?.system?.memory_percent || 0, { warning: 80, critical: 95 })}>
+                      {(dashboardData.healthData?.system?.memory_percent || 0).toFixed(1)}%
                     </span>
                   </div>
                   <div className="w-full bg-gray-700 rounded-full h-3">
                     <div 
                       className={`h-3 rounded-full transition-all duration-500 ${
-                        dashboardData.healthData.system.memory_percent >= 95 ? 'bg-red-500' :
-                        dashboardData.healthData.system.memory_percent >= 80 ? 'bg-yellow-500' : 'bg-green-500'
+                        (dashboardData.healthData?.system?.memory_percent || 0) >= 95 ? 'bg-red-500' :
+                        (dashboardData.healthData?.system?.memory_percent || 0) >= 80 ? 'bg-yellow-500' : 'bg-green-500'
                       }`}
-                      style={{ width: `${Math.min(dashboardData.healthData.system.memory_percent, 100)}%` }}
+                      style={{ width: `${Math.min(dashboardData.healthData?.system?.memory_percent || 0, 100)}%` }}
                     ></div>
                   </div>
                 </div>
@@ -423,17 +481,17 @@ export default function Dashboard() {
                 <div>
                   <div className="flex justify-between text-sm mb-2">
                     <span className="text-gray-300">Disk Usage</span>
-                    <span className={getMetricColor(dashboardData.healthData.system.disk_percent, { warning: 85, critical: 95 })}>
-                      {dashboardData.healthData.system.disk_percent.toFixed(1)}%
+                    <span className={getMetricColor(dashboardData.healthData?.system?.disk_percent || 0, { warning: 85, critical: 95 })}>
+                      {(dashboardData.healthData?.system?.disk_percent || 0).toFixed(1)}%
                     </span>
                   </div>
                   <div className="w-full bg-gray-700 rounded-full h-3">
                     <div 
                       className={`h-3 rounded-full transition-all duration-500 ${
-                        dashboardData.healthData.system.disk_percent >= 95 ? 'bg-red-500' :
-                        dashboardData.healthData.system.disk_percent >= 85 ? 'bg-yellow-500' : 'bg-green-500'
+                        (dashboardData.healthData?.system?.disk_percent || 0) >= 95 ? 'bg-red-500' :
+                        (dashboardData.healthData?.system?.disk_percent || 0) >= 85 ? 'bg-yellow-500' : 'bg-green-500'
                       }`}
-                      style={{ width: `${Math.min(dashboardData.healthData.system.disk_percent, 100)}%` }}
+                      style={{ width: `${Math.min(dashboardData.healthData?.system?.disk_percent || 0, 100)}%` }}
                     ></div>
                   </div>
                 </div>
@@ -454,10 +512,10 @@ export default function Dashboard() {
                     <span className="text-gray-300">Database</span>
                   </div>
                   <div className="flex items-center">
-                    <span className={`text-sm mr-2 ${getStatusColor(dashboardData.healthData.database.connection_status ? 'running' : 'stopped')}`}>
-                      {dashboardData.healthData.database.connection_status ? 'Connected' : 'Disconnected'}
+                    <span className={`text-sm mr-2 ${getStatusColor(dashboardData.healthData?.database?.connection_status ? 'running' : 'stopped')}`}>
+                      {dashboardData.healthData?.database?.connection_status ? 'Connected' : 'Disconnected'}
                     </span>
-                    {getStatusIcon(dashboardData.healthData.database.connection_status ? 'running' : 'stopped')}
+                    {getStatusIcon(dashboardData.healthData?.database?.connection_status ? 'running' : 'stopped')}
                   </div>
                 </div>
 
@@ -467,10 +525,10 @@ export default function Dashboard() {
                     <span className="text-gray-300">Sports API</span>
                   </div>
                   <div className="flex items-center">
-                    <span className={`text-sm mr-2 ${getStatusColor(dashboardData.healthData.api.sports_api_status ? 'running' : 'stopped')}`}>
-                      {dashboardData.healthData.api.sports_api_status ? 'Online' : 'Offline'}
+                    <span className={`text-sm mr-2 ${getStatusColor(dashboardData.healthData?.api?.sports_api_status ? 'running' : 'stopped')}`}>
+                      {dashboardData.healthData?.api?.sports_api_status ? 'Online' : 'Offline'}
                     </span>
-                    {getStatusIcon(dashboardData.healthData.api.sports_api_status ? 'running' : 'stopped')}
+                    {getStatusIcon(dashboardData.healthData?.api?.sports_api_status ? 'running' : 'stopped')}
                   </div>
                 </div>
 
@@ -480,10 +538,10 @@ export default function Dashboard() {
                     <span className="text-gray-300">SMS Service</span>
                   </div>
                   <div className="flex items-center">
-                    <span className={`text-sm mr-2 ${getStatusColor(dashboardData.healthData.api.sms_service_status ? 'running' : 'stopped')}`}>
-                      {dashboardData.healthData.api.sms_service_status ? 'Active' : 'Inactive'}
+                    <span className={`text-sm mr-2 ${getStatusColor(dashboardData.healthData?.api?.sms_service_status ? 'running' : 'stopped')}`}>
+                      {dashboardData.healthData?.api?.sms_service_status ? 'Active' : 'Inactive'}
                     </span>
-                    {getStatusIcon(dashboardData.healthData.api.sms_service_status ? 'running' : 'stopped')}
+                    {getStatusIcon(dashboardData.healthData?.api?.sms_service_status ? 'running' : 'stopped')}
                   </div>
                 </div>
 
@@ -515,19 +573,19 @@ export default function Dashboard() {
               
               <div className="grid grid-cols-2 gap-4">
                 <div className="text-center p-4 bg-white/5 rounded-lg hover:bg-white/10 transition">
-                  <p className="text-3xl font-bold text-white mb-1">{dashboardData.healthData.alerts.alerts_triggered_today}</p>
+                  <p className="text-3xl font-bold text-white mb-1">{dashboardData.healthData?.alerts?.alerts_triggered_today || 0}</p>
                   <p className="text-sm text-gray-300">Triggered Today</p>
                 </div>
                 <div className="text-center p-4 bg-white/5 rounded-lg hover:bg-white/10 transition">
-                  <p className="text-3xl font-bold text-green-400 mb-1">{dashboardData.healthData.alerts.sms_sent_today}</p>
+                  <p className="text-3xl font-bold text-green-400 mb-1">{dashboardData.healthData?.alerts?.sms_sent_today || 0}</p>
                   <p className="text-sm text-gray-300">SMS Sent</p>
                 </div>
                 <div className="text-center p-4 bg-white/5 rounded-lg hover:bg-white/10 transition">
-                  <p className="text-3xl font-bold text-red-400 mb-1">{dashboardData.healthData.alerts.sms_failed_today}</p>
+                  <p className="text-3xl font-bold text-red-400 mb-1">{dashboardData.healthData?.alerts?.sms_failed_today || 0}</p>
                   <p className="text-sm text-gray-300">SMS Failed</p>
                 </div>
                 <div className="text-center p-4 bg-white/5 rounded-lg hover:bg-white/10 transition">
-                  <p className="text-3xl font-bold text-blue-400 mb-1">{dashboardData.healthData.alerts.active_alerts}</p>
+                  <p className="text-3xl font-bold text-blue-400 mb-1">{dashboardData.healthData?.alerts?.active_alerts || 0}</p>
                   <p className="text-sm text-gray-300">Active Alerts</p>
                 </div>
               </div>
@@ -543,24 +601,24 @@ export default function Dashboard() {
                 <div className="flex justify-between items-center p-4 bg-white/5 rounded-lg hover:bg-white/10 transition">
                   <span className="text-gray-300">Database Response</span>
                   <span className="text-white font-mono">
-                    {dashboardData.healthData.database.response_time_ms.toFixed(2)}ms
+                    {(dashboardData.healthData?.database?.response_time_ms || 0).toFixed(2)}ms
                   </span>
                 </div>
                 
                 <div className="flex justify-between items-center p-4 bg-white/5 rounded-lg hover:bg-white/10 transition">
                   <span className="text-gray-300">API Errors (24h)</span>
                   <span className={`font-mono ${
-                    dashboardData.healthData.api.error_count > 10 ? 'text-red-400' :
-                    dashboardData.healthData.api.error_count > 5 ? 'text-yellow-400' : 'text-green-400'
+                    (dashboardData.healthData?.api?.error_count || 0) > 10 ? 'text-red-400' :
+                    (dashboardData.healthData?.api?.error_count || 0) > 5 ? 'text-yellow-400' : 'text-green-400'
                   }`}>
-                    {dashboardData.healthData.api.error_count}
+                    {dashboardData.healthData?.api?.error_count || 0}
                   </span>
                 </div>
                 
                 <div className="flex justify-between items-center p-4 bg-white/5 rounded-lg hover:bg-white/10 transition">
                   <span className="text-gray-300">Last Health Check</span>
                   <span className="text-white text-sm">
-                    {dashboardData.healthData.last_check ? 
+                    {dashboardData.healthData?.last_check ? 
                       new Date(dashboardData.healthData.last_check).toLocaleTimeString() : 
                       'Never'
                     }

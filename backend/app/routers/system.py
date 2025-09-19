@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends, status, Body
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import User
-from app.schemas import RegisterRequest, UserUpdate, UserBase
+from app.schemas import UserUpdate, UserBase
 from app.auth import AuthService, get_current_user
 from app.services import UserService
 from app.sms_service import sms_service
@@ -12,6 +12,7 @@ from app.services.health_monitor import health_monitor
 from app.utils.logger import log_user_action
 import os
 from pydantic import BaseModel, EmailStr
+from typing import Optional
 
 router = APIRouter(tags=["system"])
 
@@ -19,7 +20,7 @@ class RegisterRequest(BaseModel):
     email: EmailStr
     username: str
     password: str
-    phone_number: str = None
+    phone_number: Optional[str] = None
 
 class LoginRequest(BaseModel):
     email: EmailStr
@@ -188,10 +189,6 @@ def update_my_profile(
         user.username = update.username
     if update.phone_number:
         user.phone_number = update.phone_number
-    if update.full_name:
-        user.full_name = update.full_name
-    if update.preferences:
-        user.preferences = update.preferences
     if update.password:
         user.hashed_password = AuthService.get_password_hash(update.password)
     db.commit()

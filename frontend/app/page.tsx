@@ -127,51 +127,39 @@ export default function Home() {
   ]
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 relative overflow-hidden">
-      {/* Animated Background Elements */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-500/20 rounded-full blur-3xl animate-float"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-500/20 rounded-full blur-3xl animate-float" style={{animationDelay: '2s'}}></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-pink-500/10 rounded-full blur-3xl animate-pulse-slow"></div>
-      </div>
-
-      {/* Enhanced Navigation Bar */}
-      <nav className="relative bg-white/10 backdrop-blur-xl border-b border-white/20 shadow-2xl">
+    <div className="min-h-screen bg-slate-950">
+      {/* Clean Navigation Bar */}
+      <nav className="bg-slate-900/50 backdrop-blur-sm border-b border-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-20">
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-3">
-                <div className="relative">
-                  <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full blur-lg opacity-75 animate-pulse"></div>
-                  <div className="relative bg-gradient-to-r from-blue-600 to-purple-600 p-3 rounded-full shadow-xl">
-                    <span className="text-2xl">⚽</span>
-                  </div>
-                </div>
-                <span className="text-2xl font-black text-gradient">TouchLine</span>
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold">⚽</span>
               </div>
+              <span className="text-xl font-bold text-white">TouchLine</span>
             </div>
             <div className="flex items-center space-x-6">
               {session ? (
                 <>
-                  <Link href="/dashboard" className="text-gray-300 hover:text-white transition-all duration-300 hover:scale-105 font-medium">
+                  <Link href="/dashboard" className="text-slate-300 hover:text-white transition-colors font-medium">
                     Dashboard
                   </Link>
-                  <Link href="/alerts" className="text-gray-300 hover:text-white transition-all duration-300 hover:scale-105 font-medium">
+                  <Link href="/alerts" className="text-slate-300 hover:text-white transition-colors font-medium">
                     Alerts
                   </Link>
-                  <Link href="/matches" className="text-gray-300 hover:text-white transition-all duration-300 hover:scale-105 font-medium">
+                  <Link href="/matches" className="text-slate-300 hover:text-white transition-colors font-medium">
                     Matches
                   </Link>
-                  <Link href="/profile" className="text-gray-300 hover:text-white transition-all duration-300 hover:scale-105 font-medium">
+                  <Link href="/profile" className="text-slate-300 hover:text-white transition-colors font-medium">
                     Profile
                   </Link>
                 </>
               ) : (
                 <>
-                  <Link href="/auth/signin" className="text-gray-300 hover:text-white transition-all duration-300 hover:scale-105 font-medium">
+                  <Link href="/auth/signin" className="text-slate-300 hover:text-white transition-colors font-medium">
                     Sign In
                   </Link>
-                  <Link href="/auth/signup" className="btn-primary">
+                  <Link href="/auth/signup" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors font-medium">
                     Sign Up
                   </Link>
                 </>
@@ -181,155 +169,133 @@ export default function Home() {
         </div>
       </nav>
 
-      {/* Enhanced Hero Section */}
-      <div className="relative overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
-          <div className="text-center animate-fade-in">
-            <div className="mb-12 animate-scale-in">
-              <div className="relative inline-block">
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-full blur-2xl opacity-75 animate-pulse"></div>
-                <div className="relative bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-full p-12 shadow-2xl animate-float">
-                  <span className="text-8xl">⚽</span>
-                </div>
-              </div>
+      {/* Clean Hero Section */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+        <div className="text-center">
+          <div className="mb-8">
+            <div className="w-20 h-20 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
+              <span className="text-4xl">⚽</span>
             </div>
-            
-            <h1 className="text-6xl md:text-8xl font-black text-gradient mb-8 tracking-tight animate-slide-in-up">
-              Welcome to TouchLine
-            </h1>
-            
-            <p className="text-xl md:text-2xl text-gray-200 mb-12 max-w-4xl mx-auto leading-relaxed font-light animate-slide-in-up" style={{animationDelay: '0.2s'}}>
-              Real-time sports alerts, intelligent notifications, and advanced analytics for fans and power users alike.
-            </p>
-
-            {session ? (
-              <div className="flex flex-col sm:flex-row gap-6 justify-center mb-16 animate-slide-in-up" style={{animationDelay: '0.4s'}}>
-                <Link href="/dashboard" className="btn-primary text-lg px-8 py-4 flex items-center justify-center">
-                  <Play className="w-6 h-6 mr-3" />
-                  Go to Dashboard
-                </Link>
-                <Link href="/alerts" className="btn-success text-lg px-8 py-4 flex items-center justify-center">
-                  <Bell className="w-6 h-6 mr-3" />
-                  Manage Alerts
-                </Link>
-              </div>
-            ) : (
-              <div className="flex flex-col sm:flex-row gap-6 justify-center mb-16 animate-slide-in-up" style={{animationDelay: '0.4s'}}>
-                <Link href="/auth/signup" className="btn-primary text-lg px-8 py-4 flex items-center justify-center">
-                  <Users className="w-6 h-6 mr-3" />
-                  Get Started
-                </Link>
-                <Link href="/auth/signin" className="btn-secondary text-lg px-8 py-4 flex items-center justify-center">
-                  <ArrowRight className="w-6 h-6 mr-3" />
-                  Sign In
-                </Link>
-              </div>
-            )}
           </div>
+          
+          <h1 className="text-5xl md:text-6xl font-bold text-white mb-6">
+            TouchLine
+          </h1>
+          
+          <p className="text-xl text-slate-300 mb-12 max-w-2xl mx-auto">
+            Real-time sports alerts and intelligent notifications powered by advanced analytics.
+          </p>
+
+          {session ? (
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link href="/dashboard" className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-medium transition-colors">
+                Go to Dashboard
+              </Link>
+              <Link href="/alerts" className="bg-slate-800 hover:bg-slate-700 text-white px-8 py-3 rounded-lg font-medium transition-colors">
+                Manage Alerts
+              </Link>
+            </div>
+          ) : (
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link href="/auth/signup" className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-medium transition-colors">
+                Get Started
+              </Link>
+              <Link href="/auth/signin" className="bg-slate-800 hover:bg-slate-700 text-white px-8 py-3 rounded-lg font-medium transition-colors">
+                Sign In
+              </Link>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Enhanced Live Stats Section */}
+      {/* Clean Stats Section */}
       {!loading && (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {stats.map((stat, index) => (
-              <div key={index} className="card-elevated p-6 text-center animate-scale-in group" style={{animationDelay: `${index * 0.1}s`}}>
-                <div className={`${stat.color} mb-4 flex justify-center group-hover:scale-110 transition-transform duration-300`}>
+              <div key={index} className="bg-slate-900/50 border border-slate-800 rounded-lg p-6 text-center">
+                <div className={`${stat.color} mb-4 flex justify-center`}>
                   {stat.icon}
                 </div>
-                <div className="text-3xl font-bold text-white mb-2 group-hover:text-gradient-primary transition-all duration-300">{stat.value}</div>
-                <div className="text-sm text-gray-300 font-medium">{stat.label}</div>
+                <div className="text-2xl font-bold text-white mb-2">{stat.value}</div>
+                <div className="text-sm text-slate-400">{stat.label}</div>
               </div>
             ))}
           </div>
         </div>
       )}
 
-      {/* Enhanced Features Section */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
-        <div className="text-center mb-20 animate-fade-in">
-          <h2 className="text-5xl font-bold text-gradient mb-6">Powerful Features</h2>
-          <p className="text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed">
+      {/* Clean Features Section */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+        <div className="text-center mb-16">
+          <h2 className="text-4xl font-bold text-white mb-4">Features</h2>
+          <p className="text-lg text-slate-300 max-w-2xl mx-auto">
             Everything you need to stay on top of your favorite sports with intelligent alerts and real-time insights.
           </p>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {features.map((feature, index) => (
-            <div key={index} className="card-interactive p-8 animate-slide-in-up group" style={{animationDelay: `${index * 0.1}s`}}>
-              <div className={`inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-r ${feature.color} mb-6 group-hover:scale-110 transition-all duration-300 shadow-lg`}>
+            <div key={index} className="bg-slate-900/50 border border-slate-800 rounded-lg p-8">
+              <div className={`inline-flex items-center justify-center w-12 h-12 rounded-lg bg-blue-600 mb-6`}>
                 {feature.icon}
               </div>
-              <h3 className="text-2xl font-bold text-white mb-4 group-hover:text-gradient-primary transition-all duration-300">{feature.title}</h3>
-              <p className="text-gray-300 leading-relaxed text-lg">{feature.description}</p>
+              <h3 className="text-xl font-bold text-white mb-4">{feature.title}</h3>
+              <p className="text-slate-300 leading-relaxed">{feature.description}</p>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Enhanced Quick Actions Section */}
+      {/* Clean Quick Actions Section */}
       {session && (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
-          <div className="text-center mb-16 animate-fade-in">
-            <h2 className="text-5xl font-bold text-gradient mb-6">Quick Actions</h2>
-            <p className="text-xl text-gray-300 max-w-2xl mx-auto">Get started with TouchLine's core features</p>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-white mb-4">Quick Actions</h2>
+            <p className="text-lg text-slate-300">Get started with TouchLine's core features</p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <Link href="/alerts" className="group bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-2xl p-8 text-center hover:from-blue-700 hover:to-blue-800 transition-all duration-300 shadow-2xl hover:shadow-3xl hover:scale-105 animate-slide-in-up">
-              <div className="relative mb-6">
-                <div className="absolute inset-0 bg-white/20 rounded-full blur-lg group-hover:blur-xl transition-all duration-300"></div>
-                <Bell className="w-16 h-16 mx-auto relative group-hover:scale-110 transition-transform duration-300" />
-              </div>
-              <h3 className="text-2xl font-bold mb-3">Manage Alerts</h3>
-              <p className="text-blue-100 text-lg">Create and configure your sports alerts</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Link href="/alerts" className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg p-8 text-center transition-colors">
+              <Bell className="w-12 h-12 mx-auto mb-4" />
+              <h3 className="text-xl font-bold mb-2">Manage Alerts</h3>
+              <p className="text-blue-100">Create and configure your sports alerts</p>
             </Link>
             
-            <Link href="/matches" className="group bg-gradient-to-r from-green-600 to-green-700 text-white rounded-2xl p-8 text-center hover:from-green-700 hover:to-green-800 transition-all duration-300 shadow-2xl hover:shadow-3xl hover:scale-105 animate-slide-in-up" style={{animationDelay: '0.1s'}}>
-              <div className="relative mb-6">
-                <div className="absolute inset-0 bg-white/20 rounded-full blur-lg group-hover:blur-xl transition-all duration-300"></div>
-                <Activity className="w-16 h-16 mx-auto relative group-hover:scale-110 transition-transform duration-300" />
-              </div>
-              <h3 className="text-2xl font-bold mb-3">View Matches</h3>
-              <p className="text-green-100 text-lg">Browse live and upcoming matches</p>
+            <Link href="/matches" className="bg-slate-800 hover:bg-slate-700 text-white rounded-lg p-8 text-center transition-colors">
+              <Activity className="w-12 h-12 mx-auto mb-4" />
+              <h3 className="text-xl font-bold mb-2">View Matches</h3>
+              <p className="text-slate-300">Browse live and upcoming matches</p>
             </Link>
             
-            <Link href="/profile" className="group bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-2xl p-8 text-center hover:from-purple-700 hover:to-purple-800 transition-all duration-300 shadow-2xl hover:shadow-3xl hover:scale-105 animate-slide-in-up" style={{animationDelay: '0.2s'}}>
-              <div className="relative mb-6">
-                <div className="absolute inset-0 bg-white/20 rounded-full blur-lg group-hover:blur-xl transition-all duration-300"></div>
-                <Users className="w-16 h-16 mx-auto relative group-hover:scale-110 transition-transform duration-300" />
-              </div>
-              <h3 className="text-2xl font-bold mb-3">Profile</h3>
-              <p className="text-purple-100 text-lg">Manage your account and preferences</p>
+            <Link href="/profile" className="bg-slate-800 hover:bg-slate-700 text-white rounded-lg p-8 text-center transition-colors">
+              <Users className="w-12 h-12 mx-auto mb-4" />
+              <h3 className="text-xl font-bold mb-2">Profile</h3>
+              <p className="text-slate-300">Manage your account and preferences</p>
             </Link>
           </div>
         </div>
       )}
 
-      {/* Enhanced Footer */}
-      <footer className="relative bg-black/30 backdrop-blur-xl border-t border-white/20 mt-24">
-        <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      {/* Clean Footer */}
+      <footer className="bg-slate-900 border-t border-slate-800 mt-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="text-center">
-            <div className="flex items-center justify-center space-x-3 mb-6">
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full blur-lg opacity-75"></div>
-                <div className="relative bg-gradient-to-r from-blue-600 to-purple-600 p-3 rounded-full">
-                  <span className="text-2xl">⚽</span>
-                </div>
+            <div className="flex items-center justify-center space-x-3 mb-4">
+              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold">⚽</span>
               </div>
-              <span className="text-3xl font-black text-gradient">TouchLine</span>
+              <span className="text-xl font-bold text-white">TouchLine</span>
             </div>
-            <p className="text-gray-300 mb-8 text-lg">
+            <p className="text-slate-400 mb-6">
               Real-time sports alerts and advanced analytics
             </p>
-            <div className="flex justify-center space-x-8 text-sm text-gray-400">
-              <span className="hover:text-white transition-colors duration-300 cursor-pointer">© 2025 TouchLine</span>
+            <div className="flex justify-center space-x-6 text-sm text-slate-500">
+              <span>© 2025 TouchLine</span>
               <span>•</span>
-              <span className="hover:text-white transition-colors duration-300 cursor-pointer">Privacy Policy</span>
+              <span>Privacy Policy</span>
               <span>•</span>
-              <span className="hover:text-white transition-colors duration-300 cursor-pointer">Terms of Service</span>
+              <span>Terms of Service</span>
             </div>
           </div>
         </div>

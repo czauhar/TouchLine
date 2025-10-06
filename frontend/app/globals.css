@@ -325,15 +325,15 @@ body {
 
 /* Enhanced Card Styles */
 .card {
-  @apply bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 transition-all duration-300 hover:bg-white/15 hover:border-white/30 hover:shadow-xl;
+  @apply bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 transition-all duration-300 hover:bg-white/20 hover:border-white/30 hover:shadow-xl;
 }
 
 .card-elevated {
-  @apply bg-white/15 backdrop-blur-2xl rounded-2xl border border-white/30 shadow-2xl transition-all duration-300 hover:bg-white/20 hover:shadow-3xl hover:scale-105;
+  @apply bg-white/20 backdrop-blur-2xl rounded-2xl border border-white/30 shadow-2xl transition-all duration-300 hover:bg-white/30 hover:shadow-2xl hover:scale-105;
 }
 
 .card-interactive {
-  @apply bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 transition-all duration-300 hover:bg-white/15 hover:border-white/30 hover:shadow-xl hover:scale-105 cursor-pointer;
+  @apply bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 transition-all duration-300 hover:bg-white/20 hover:border-white/30 hover:shadow-xl hover:scale-105 cursor-pointer;
 }
 
 /* Enhanced Input Styles */

@@ -41,11 +41,19 @@ class SportsAPIService:
                 return []
     
     async def get_todays_matches(self) -> List[Dict]:
-        """Get today's matches with detailed stats"""
+        """Get today's matches with detailed stats - optimized for top leagues only"""
         if not self.api_key:
             return []
             
         today = datetime.now().strftime("%Y-%m-%d")
+        
+        # Top leagues to prioritize (reduce API load)
+        top_leagues = [
+            "Premier League", "La Liga", "Serie A", "Bundesliga", "Ligue 1",
+            "Champions League", "Europa League", "Liga MX", "MLS", "NWSL",
+            "Liga Profesional Argentina", "Brasileirão", "Eredivisie", "Primeira Liga"
+        ]
+        
         async with httpx.AsyncClient() as client:
             try:
                 response = await client.get(
@@ -55,10 +63,19 @@ class SportsAPIService:
                 )
                 response.raise_for_status()
                 data = response.json()
-                matches = data.get("response", [])
+                all_matches = data.get("response", [])
                 
-                # Return basic matches - enhancement will be handled by data service
-                return matches
+                # Filter to only top leagues and limit to 200 matches
+                filtered_matches = []
+                for match in all_matches:
+                    league_name = match.get("league", {}).get("name", "")
+                    if any(top_league in league_name for top_league in top_leagues):
+                        filtered_matches.append(match)
+                        if len(filtered_matches) >= 200:  # Limit to 200 matches
+                            break
+                
+                print(f"Filtered {len(filtered_matches)} top league matches from {len(all_matches)} total")
+                return filtered_matches
             except Exception as e:
                 print(f"Error fetching today's matches: {e}")
                 return []

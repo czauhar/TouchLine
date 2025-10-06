@@ -27,5 +27,11 @@ slowapi>=0.1.9
 # Database migrations
 alembic>=1.13.1
 
+# PostgreSQL support
+psycopg2-binary>=2.9.7
+
+# Redis caching
+redis>=5.0.0
+
 # System monitoring
 psutil>=5.9.6 

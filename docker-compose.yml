@@ -1,6 +1,42 @@
 version: '3.8'
 
 services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: touchline-postgres
+    environment:
+      - POSTGRES_DB=touchline
+      - POSTGRES_USER=touchline
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-touchline123}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - touchline-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U touchline"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: touchline-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - touchline-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   # Backend API
   backend:
     build:
@@ -9,6 +45,8 @@ services:
     container_name: touchline-backend
     environment:
       - DATABASE_URL=sqlite:///./touchline.db
+      - POSTGRES_URL=postgresql://touchline:touchline123@postgres:5432/touchline
+      - REDIS_URL=redis://redis:6379
       - SECRET_KEY=${SECRET_KEY:-your-secret-key-here}
       - API_FOOTBALL_KEY=${API_FOOTBALL_KEY}
       - TWILIO_ACCOUNT_SID=${TWILIO_ACCOUNT_SID}
@@ -22,6 +60,11 @@ services:
       - "8000:8000"
     networks:
       - touchline-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
@@ -46,6 +89,9 @@ services:
     networks:
       - touchline-network
     restart: unless-stopped
+
+volumes:
+  postgres_data:
 
 networks:
   touchline-network:

@@ -83,7 +83,7 @@ class HealthMonitor:
             "sms_service": 0,
             "database": 0
         }
-        self.max_history_size = 100
+        self.max_history_size = 50  # Reduced from 100 to save memory
         
     async def get_system_metrics(self) -> SystemMetrics:
         """Get current system performance metrics"""
@@ -364,10 +364,16 @@ class HealthMonitor:
             timestamp=datetime.utcnow()
         )
         
-        # Store in history
+        # Store in history with memory optimization
         self.health_history.append(report)
         if len(self.health_history) > self.max_history_size:
+            # Remove oldest entries to save memory
             self.health_history.pop(0)
+            
+        # Force garbage collection periodically
+        if len(self.health_history) % 10 == 0:
+            import gc
+            gc.collect()
         
         self.last_check = datetime.utcnow()
         

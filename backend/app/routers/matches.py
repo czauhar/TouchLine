@@ -21,7 +21,7 @@ async def get_live_matches():
                 "id": match_data.external_id,
                 "fixture": {
                     "id": int(match_data.external_id),
-                    "date": match_data.start_time.isoformat(),
+                    "date": match_data.start_time.isoformat() if hasattr(match_data.start_time, 'isoformat') else str(match_data.start_time),
                     "status": {"short": match_data.status, "elapsed": match_data.elapsed_time},
                     "referee": match_data.referee,
                     "venue": {"name": match_data.venue},
@@ -90,7 +90,7 @@ async def get_todays_matches():
                 "id": match_data.external_id,
                 "fixture": {
                     "id": int(match_data.external_id),
-                    "date": match_data.start_time.isoformat(),
+                    "date": match_data.start_time.isoformat() if hasattr(match_data.start_time, 'isoformat') else str(match_data.start_time),
                     "status": {"short": match_data.status, "elapsed": match_data.elapsed_time},
                     "referee": match_data.referee,
                     "venue": {"name": match_data.venue},

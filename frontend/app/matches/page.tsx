@@ -516,6 +516,138 @@ export default function MatchesPage() {
           </div>
         )}
       </div>
+
+      {/* Match Detail Modal */}
+      {selectedMatch && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-lg flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="bg-white/10 backdrop-blur-xl rounded-3xl p-8 border border-white/20 max-w-4xl w-full max-h-[90vh] overflow-y-auto animate-scale-in">
+            <div className="flex items-center justify-between mb-8">
+              <h2 className="text-3xl font-bold text-white">Match Details</h2>
+              <button
+                onClick={() => setSelectedMatch(null)}
+                className="text-gray-400 hover:text-white text-2xl transition-colors duration-300"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div className="space-y-8">
+              {/* Match Header */}
+              <div className="text-center">
+                <div className="flex items-center justify-center space-x-8 mb-4">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-white mb-2">
+                      {typeof selectedMatch.teams?.home?.name === 'string' ? selectedMatch.teams.home.name : 'Home Team'}
+                    </div>
+                    <div className="text-6xl font-bold text-white">
+                      {selectedMatch.goals?.home || 0}
+                    </div>
+                  </div>
+                  <div className="text-gray-400 text-2xl font-bold">VS</div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-white mb-2">
+                      {typeof selectedMatch.teams?.away?.name === 'string' ? selectedMatch.teams.away.name : 'Away Team'}
+                    </div>
+                    <div className="text-6xl font-bold text-white">
+                      {selectedMatch.goals?.away || 0}
+                    </div>
+                  </div>
+                </div>
+                <div className="text-lg text-gray-300">
+                  {selectedMatch.fixture?.status?.short || 'Unknown'} 
+                  {selectedMatch.fixture?.status?.elapsed > 0 && ` (${selectedMatch.fixture.status.elapsed}')`}
+                </div>
+              </div>
+
+              {/* Match Info */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="bg-white/5 rounded-xl p-6">
+                  <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+                    <Trophy className="w-5 h-5 mr-2 text-yellow-400" />
+                    League
+                  </h3>
+                  <p className="text-gray-300">
+                    {typeof selectedMatch.league?.name === 'string' ? selectedMatch.league.name : 'Unknown League'}
+                  </p>
+                </div>
+                
+                <div className="bg-white/5 rounded-xl p-6">
+                  <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+                    <MapPin className="w-5 h-5 mr-2 text-blue-400" />
+                    Venue
+                  </h3>
+                  <p className="text-gray-300">
+                    {selectedMatch.fixture?.venue?.name || 'Unknown Venue'}
+                  </p>
+                </div>
+                
+                <div className="bg-white/5 rounded-xl p-6">
+                  <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+                    <Users className="w-5 h-5 mr-2 text-green-400" />
+                    Referee
+                  </h3>
+                  <p className="text-gray-300">
+                    {selectedMatch.fixture?.referee || 'Unknown'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Enhanced Stats */}
+              {selectedMatch.alert_metrics && (
+                <div className="bg-white/5 rounded-xl p-6">
+                  <h3 className="text-xl font-semibold text-white mb-6 flex items-center">
+                    <BarChart3 className="w-6 h-6 mr-2 text-purple-400" />
+                    Match Statistics
+                  </h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-white mb-1">
+                        {selectedMatch.alert_metrics.possession?.home || 50}%
+                      </div>
+                      <div className="text-gray-400 text-sm">Possession</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-white mb-1">
+                        {selectedMatch.alert_metrics.shots?.home || 0}
+                      </div>
+                      <div className="text-gray-400 text-sm">Shots</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-white mb-1">
+                        {selectedMatch.alert_metrics.corners?.home || 0}
+                      </div>
+                      <div className="text-gray-400 text-sm">Corners</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-white mb-1">
+                        {selectedMatch.alert_metrics.cards?.home_yellow || 0}
+                      </div>
+                      <div className="text-gray-400 text-sm">Cards</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="flex space-x-4">
+                <Link
+                  href={`/alerts/create?match=${selectedMatch.id}`}
+                  className="flex-1 bg-green-600 text-white px-6 py-3 rounded-xl hover:bg-green-700 transition flex items-center justify-center font-medium"
+                >
+                  <Plus className="w-5 h-5 mr-2" />
+                  Create Alert
+                </Link>
+                <button
+                  onClick={() => setSelectedMatch(null)}
+                  className="flex-1 bg-gray-600 text-white px-6 py-3 rounded-xl hover:bg-gray-700 transition font-medium"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 } 

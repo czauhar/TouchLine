@@ -4,8 +4,9 @@ from typing import Optional
 import os
 
 class Settings(BaseSettings):
-    # Database
+    # Database - Support both SQLite and PostgreSQL
     DATABASE_URL: str = "sqlite:///./touchline.db"
+    POSTGRES_URL: Optional[str] = None
     
     # Security
     SECRET_KEY: str = "your-secret-key-here"

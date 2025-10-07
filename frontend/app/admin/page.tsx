@@ -73,19 +73,19 @@ export default function AdminPage() {
       
       // Load database stats
       const statsResponse = await apiClient.get('/admin/database/stats')
-      setStats(statsResponse.data)
+      setStats(statsResponse)
       
       // Load user analytics
       const usersResponse = await apiClient.get('/admin/database/users')
-      setUsers(usersResponse.data.users)
+      setUsers(usersResponse.users)
       
       // Load match analytics
       const matchesResponse = await apiClient.get('/admin/database/matches')
-      setMatches(matchesResponse.data.matches)
+      setMatches(matchesResponse.matches)
       
       // Load alert analytics
       const alertsResponse = await apiClient.get('/admin/database/alerts')
-      setAlerts(alertsResponse.data.alerts)
+      setAlerts(alertsResponse.alerts)
       
     } catch (error) {
       console.error('Error loading data:', error)

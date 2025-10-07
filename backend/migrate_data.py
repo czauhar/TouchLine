@@ -40,7 +40,7 @@ def migrate_data():
                 user_dict['id'], user_dict['email'], user_dict['username'], 
                 user_dict['hashed_password'], user_dict['phone_number'],
                 user_dict.get('full_name'), user_dict.get('role', 'user'),
-                user_dict.get('preferences'), user_dict['is_active'], 
+                user_dict.get('preferences'), bool(user_dict['is_active']), 
                 user_dict['created_at'], user_dict.get('updated_at', user_dict['created_at'])
             ))
         
@@ -82,7 +82,7 @@ def migrate_data():
                 alert_dict['id'], alert_dict['user_id'], alert_dict['name'], 
                 alert_dict['alert_type'], alert_dict['team'], alert_dict['condition'], 
                 alert_dict['threshold'], alert_dict.get('time_window'), 
-                alert_dict.get('user_phone'), alert_dict['is_active'], 
+                alert_dict.get('user_phone'), bool(alert_dict['is_active']), 
                 alert_dict['created_at'], alert_dict.get('trigger_count', 0), 
                 alert_dict.get('last_triggered_at'), alert_dict.get('conditions_json'), 
                 alert_dict.get('player_id'), alert_dict.get('player_name')
@@ -104,7 +104,7 @@ def migrate_data():
             """, (
                 entry_dict['id'], entry_dict['alert_id'], entry_dict['match_id'], 
                 entry_dict['triggered_at'], entry_dict['trigger_message'], 
-                entry_dict['sms_sent'], entry_dict.get('sms_message_id'), 
+                bool(entry_dict['sms_sent']), entry_dict.get('sms_message_id'), 
                 entry_dict.get('match_data')
             ))
         

@@ -28,9 +28,9 @@ async def get_database_stats(db: Session = Depends(get_db)):
             # PostgreSQL queries
             result = db.execute(text("""
                 SELECT 
-                    schemaname, tablename, n_live_tup as rows
+                    schemaname, relname as tablename, n_live_tup as rows
                 FROM pg_stat_user_tables
-                ORDER BY tablename
+                ORDER BY relname
             """))
             table_stats = result.fetchall()
             

@@ -34,9 +34,17 @@ class Settings(BaseSettings):
     # CORS
     ALLOWED_ORIGINS: str = "http://localhost:3000,https://touchline.app,https://www.touchline.app"
     
+    # Additional environment variables (optional)
+    REDIS_URL: Optional[str] = None
+    NEXTAUTH_SECRET: Optional[str] = None
+    NEXTAUTH_URL: Optional[str] = None
+    ENVIRONMENT: Optional[str] = None
+    FRONTEND_URL: Optional[str] = None
+    
     model_config = ConfigDict(
         env_file=".env",
-        case_sensitive=False
+        case_sensitive=False,
+        extra="ignore"  # Ignore extra environment variables
     )
 
 settings = Settings() 

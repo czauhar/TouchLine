@@ -7,6 +7,9 @@ from .core.config import settings
 # Use settings for database URL - prefer PostgreSQL if available
 DATABASE_URL = settings.POSTGRES_URL or settings.DATABASE_URL
 
+# Check if we're using PostgreSQL
+IS_POSTGRES = "postgresql" in DATABASE_URL
+
 # Create engine with optimized connection pool settings for memory efficiency
 engine = create_engine(
     DATABASE_URL,

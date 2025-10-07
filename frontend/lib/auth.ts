@@ -268,4 +268,4 @@ class ApiClient {
   }
 }
 
-export const apiClient = new ApiClient(process.env.NEXT_PUBLIC_API_URL || 'http://64.225.56.165:8000') 
+export const apiClient = new ApiClient(process.env.NEXT_PUBLIC_API_URL || '') 

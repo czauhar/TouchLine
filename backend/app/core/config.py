@@ -32,7 +32,7 @@ class Settings(BaseSettings):
     MAX_RETRIES: int = 3
     
     # CORS
-    ALLOWED_ORIGINS: str = "http://localhost:3000,https://touchline.app,https://www.touchline.app,http://64.225.56.165:3000"
+    ALLOWED_ORIGINS: str = "http://localhost:3000,https://touchline.app,https://www.touchline.app,http://64.225.56.165:3000,http://64.225.56.165"
     
     # Additional environment variables (optional)
     REDIS_URL: Optional[str] = None

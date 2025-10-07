@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { apiClient } from '../../../lib/auth'
 import toast from 'react-hot-toast'
+import { Loader2, ArrowLeft } from 'lucide-react'
 
 const signupSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -63,44 +64,124 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black flex items-center justify-center">
-      <div className="relative z-10 w-full max-w-md">
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-black bg-gradient-to-r from-white via-blue-200 to-purple-200 bg-clip-text text-transparent mb-2">
-            Create Account
+    <div className="min-h-screen bg-slate-950 flex items-center justify-center px-4">
+      <div className="w-full max-w-md">
+        {/* Back to Home Link */}
+        <Link 
+          href="/" 
+          className="inline-flex items-center text-slate-400 hover:text-white transition-colors mb-8 group"
+        >
+          <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" />
+          Back to home
+        </Link>
+
+        {/* Logo */}
+        <div className="text-center mb-10">
+          <div className="w-16 h-16 bg-blue-600 rounded-xl flex items-center justify-center mx-auto mb-6">
+            <span className="text-3xl">⚽</span>
+          </div>
+          <h1 className="text-3xl font-bold text-white mb-2">
+            Create your account
           </h1>
-          <p className="text-gray-400">Sign up for TouchLine</p>
+          <p className="text-slate-400">
+            Get started with TouchLine sports alerts
+          </p>
         </div>
-        <div className="relative bg-gray-900/80 backdrop-blur-xl rounded-3xl border border-gray-800 p-8">
+
+        {/* Sign Up Form */}
+        <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-8">
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+            {/* Email Field */}
             <div>
-              <label className="block text-gray-300 mb-1">Email</label>
-              <input type="email" {...register('email')} className="w-full px-3 py-2 rounded border border-gray-700 bg-gray-800 text-white" />
-              {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>}
+              <label htmlFor="email" className="block text-sm font-medium text-slate-300 mb-2">
+                Email Address
+              </label>
+              <input
+                {...register('email')}
+                type="email"
+                id="email"
+                className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                placeholder="you@example.com"
+              />
+              {errors.email && (
+                <p className="mt-2 text-sm text-red-400">{errors.email.message}</p>
+              )}
             </div>
+
+            {/* Username Field */}
             <div>
-              <label className="block text-gray-300 mb-1">Username</label>
-              <input type="text" {...register('username')} className="w-full px-3 py-2 rounded border border-gray-700 bg-gray-800 text-white" />
-              {errors.username && <p className="text-red-500 text-sm mt-1">{errors.username.message}</p>}
+              <label htmlFor="username" className="block text-sm font-medium text-slate-300 mb-2">
+                Username
+              </label>
+              <input
+                {...register('username')}
+                type="text"
+                id="username"
+                className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                placeholder="Your username"
+              />
+              {errors.username && (
+                <p className="mt-2 text-sm text-red-400">{errors.username.message}</p>
+              )}
             </div>
+
+            {/* Password Field */}
             <div>
-              <label className="block text-gray-300 mb-1">Password</label>
-              <input type="password" {...register('password')} className="w-full px-3 py-2 rounded border border-gray-700 bg-gray-800 text-white" />
-              {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password.message}</p>}
+              <label htmlFor="password" className="block text-sm font-medium text-slate-300 mb-2">
+                Password
+              </label>
+              <input
+                {...register('password')}
+                type="password"
+                id="password"
+                className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                placeholder="Create a password"
+              />
+              {errors.password && (
+                <p className="mt-2 text-sm text-red-400">{errors.password.message}</p>
+              )}
             </div>
+
+            {/* Phone Field (Optional) */}
             <div>
-              <label className="block text-gray-300 mb-1">Phone (optional)</label>
-              <input type="text" {...register('phone_number')} className="w-full px-3 py-2 rounded border border-gray-700 bg-gray-800 text-white" />
+              <label htmlFor="phone_number" className="block text-sm font-medium text-slate-300 mb-2">
+                Phone Number <span className="text-slate-500">(optional)</span>
+              </label>
+              <input
+                {...register('phone_number')}
+                type="tel"
+                id="phone_number"
+                className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                placeholder="+1 (555) 000-0000"
+              />
             </div>
-            <button type="submit" disabled={isLoading} className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition">
-              {isLoading ? 'Creating Account...' : 'Sign Up'}
+
+            {/* Submit Button */}
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="animate-spin mr-2" size={20} />
+                  Creating account...
+                </>
+              ) : (
+                'Create Account'
+              )}
             </button>
           </form>
-          <div className="mt-6 text-center">
-            <Link href="/auth/signin" className="text-blue-400 hover:underline">Already have an account? Sign in</Link>
+
+          {/* Sign In Link */}
+          <div className="mt-6 text-center text-sm">
+            <span className="text-slate-400">Already have an account? </span>
+            <Link href="/auth/signin" className="text-blue-400 hover:text-blue-300 font-medium transition-colors">
+              Sign in
+            </Link>
           </div>
         </div>
       </div>
     </div>
   )
-} 
+}

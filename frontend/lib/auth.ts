@@ -241,6 +241,31 @@ class ApiClient {
   async getHealth() {
     return this.request('/health')
   }
+
+  // Generic HTTP methods
+  async get<T = any>(endpoint: string): Promise<T> {
+    return this.request<T>(endpoint)
+  }
+
+  async post<T = any>(endpoint: string, data?: any): Promise<T> {
+    return this.request<T>(endpoint, {
+      method: 'POST',
+      body: data ? JSON.stringify(data) : undefined,
+    })
+  }
+
+  async put<T = any>(endpoint: string, data?: any): Promise<T> {
+    return this.request<T>(endpoint, {
+      method: 'PUT',
+      body: data ? JSON.stringify(data) : undefined,
+    })
+  }
+
+  async delete<T = any>(endpoint: string): Promise<T> {
+    return this.request<T>(endpoint, {
+      method: 'DELETE',
+    })
+  }
 }
 
 export const apiClient = new ApiClient(process.env.NEXT_PUBLIC_API_URL || 'http://68.183.59.147:8000') 

@@ -1,7 +1,6 @@
 from fastapi import HTTPException, Depends, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 from datetime import datetime, timedelta
 from typing import Optional
 from sqlalchemy.orm import Session
@@ -9,6 +8,7 @@ from .database import get_db
 from .models import User
 from .core.config import settings
 import os
+import bcrypt
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -18,20 +18,28 @@ SECRET_KEY = settings.SECRET_KEY
 ALGORITHM = settings.ALGORITHM
 ACCESS_TOKEN_EXPIRE_MINUTES = settings.ACCESS_TOKEN_EXPIRE_MINUTES
 
-# Password hashing
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
 # JWT token scheme
 security = HTTPBearer()
 
 class AuthService:
     @staticmethod
     def verify_password(plain_password: str, hashed_password: str) -> bool:
-        return pwd_context.verify(plain_password, hashed_password)
+        """Verify a password against a bcrypt hash"""
+        try:
+            if isinstance(plain_password, str):
+                plain_password = plain_password.encode('utf-8')
+            if isinstance(hashed_password, str):
+                hashed_password = hashed_password.encode('utf-8')
+            return bcrypt.checkpw(plain_password, hashed_password)
+        except Exception:
+            return False
     
     @staticmethod
     def get_password_hash(password: str) -> str:
-        return pwd_context.hash(password)
+        """Hash a password using bcrypt"""
+        if isinstance(password, str):
+            password = password.encode('utf-8')
+        return bcrypt.hashpw(password, bcrypt.gensalt()).decode('utf-8')
     
     @staticmethod
     def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):

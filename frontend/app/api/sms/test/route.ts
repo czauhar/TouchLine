@@ -13,7 +13,8 @@ export async function POST(request: Request) {
     }
 
     console.log('Frontend SMS test API: Sending test SMS...')
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/sms/test?to_number=${encodeURIComponent(to_number)}&message=${encodeURIComponent(message)}`, {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://64.225.56.165:8000'
+    const response = await fetch(`${apiUrl}/api/sms/test?to_number=${encodeURIComponent(to_number)}&message=${encodeURIComponent(message)}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

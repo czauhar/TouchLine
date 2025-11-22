@@ -2,12 +2,14 @@
 
 A modern full-stack application for real-time sports statistics monitoring and alerting.
 
+> **🚀 Recently Refactored**: The application has been completely refactored with improved organization, PostgreSQL-only database, and a comprehensive component library. See [REFACTOR_PROGRESS.md](./REFACTOR_PROGRESS.md) for details.
+
 ## 🏗️ Architecture
 
 ```
 TouchLine/
-├── 🐍 backend/          # FastAPI Python backend
-├── ⚛️ frontend/         # Next.js React frontend  
+├── 🐍 backend/          # FastAPI Python backend (PostgreSQL)
+├── ⚛️ frontend/         # Next.js React frontend with component library
 ├── 📜 scripts/         # Deployment & automation
 ├── ⚙️ config/          # Configuration files
 └── 🐳 docker-compose.yml
@@ -45,27 +47,35 @@ TouchLine/
 
 ## 🛠️ Technology Stack
 
-- **Backend**: FastAPI, Python, SQLAlchemy, SQLite
-- **Frontend**: Next.js, React, TypeScript, Tailwind CSS
+- **Backend**: FastAPI, Python, SQLAlchemy, PostgreSQL
+- **Frontend**: Next.js 14, React 18, TypeScript, Tailwind CSS
+- **Component Library**: Custom UI components with Radix-like patterns
 - **Authentication**: NextAuth.js
 - **SMS**: Twilio
 - **Sports Data**: API-Football
-- **Deployment**: PM2, Nginx, Docker
+- **Caching**: Redis
+- **Deployment**: PM2, Nginx, Docker, DigitalOcean
 
 ## 📁 Project Structure
 
 ### Backend (`/backend/`)
 - `main.py` - FastAPI application entry point
 - `app/` - Core application modules
-  - `routers/` - API endpoints
-  - `services/` - Business logic
-  - `models.py` - Database models
-  - `auth.py` - Authentication
-  - `sms_service.py` - SMS notifications
+  - `routers/` - API endpoints (REST)
+  - `services/` - Business logic (static method pattern)
+  - `models.py` - SQLAlchemy database models
+  - `core/` - Configuration and exceptions
+  - `utils/` - Validation and logging utilities
+  - `auth.py` - JWT authentication
+  - `sms_service.py` - Twilio SMS integration
 
 ### Frontend (`/frontend/`)
-- `app/` - Next.js pages and API routes
+- `app/` - Next.js 14 App Router pages
 - `components/` - Reusable UI components
+  - `ui/` - Base components (Button, Card, Input, etc.)
+  - `matches/` - Match-related components
+  - `alerts/` - Alert management components
+  - `dashboard/` - Dashboard widgets
 - `lib/` - Utility functions and API client
 
 ### Scripts (`/scripts/`)

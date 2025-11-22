@@ -2,10 +2,9 @@ module.exports = {
   apps: [
     {
       name: 'touchline-backend',
-      script: 'uvicorn',
-      args: 'main:app --host 0.0.0.0 --port 8000',
+      script: '/var/www/touchline/backend/venv/bin/python',
+      args: '-m uvicorn main:app --host 0.0.0.0 --port 8000',
       cwd: '/var/www/touchline/backend',
-      interpreter: '/var/www/touchline/backend/venv/bin/python',
       instances: 1,
       autorestart: true,
       watch: false,

@@ -1,0 +1,20 @@
+Recent fixes that need to be committed:
+
+Backend:
+- Fixed health_monitor.py PostgreSQL queries (boolean types, date functions)
+- Fixed matches.py error handling (return empty arrays instead of 500 errors)
+- Fixed system.py health endpoint to return fresh data
+
+Frontend:
+- Fixed /api/matches/live to call real API (was calling /test)
+- Fixed /api/matches/today to call real API  
+- Fixed /api/user/me route created (was missing)
+- Fixed /api/alerts route authentication
+- Fixed lib/auth.ts to use relative URLs for proxy routes
+- Fixed health/detailed route to bypass cache
+
+Config:
+- Updated ecosystem.config.js for proper PM2 startup
+- Server .env updated with real API keys
+
+All critical files now match between local and server (verified via MD5).

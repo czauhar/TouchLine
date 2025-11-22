@@ -44,8 +44,7 @@ services:
       dockerfile: Dockerfile
     container_name: touchline-backend
     environment:
-      - DATABASE_URL=sqlite:///./touchline.db
-      - POSTGRES_URL=postgresql://touchline:touchline123@postgres:5432/touchline
+      - DATABASE_URL=postgresql://touchline:touchline123@postgres:5432/touchline
       - REDIS_URL=redis://redis:6379
       - SECRET_KEY=${SECRET_KEY:-your-secret-key-here}
       - API_FOOTBALL_KEY=${API_FOOTBALL_KEY}

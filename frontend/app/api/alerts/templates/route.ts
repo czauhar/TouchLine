@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server'
 
 export async function GET() {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://68.183.59.147:8000'}/api/alerts/templates`, {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://64.225.56.165:8000'
+    const response = await fetch(`${apiUrl}/api/alerts/templates`, {
       headers: {
         'Content-Type': 'application/json',
       },

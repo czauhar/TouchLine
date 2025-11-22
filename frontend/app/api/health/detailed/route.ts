@@ -1,12 +1,19 @@
 import { NextResponse } from 'next/server'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export async function GET() {
   try {
-    console.log('Frontend detailed health API: Fetching from backend...')
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/health/detailed`, {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://64.225.56.165:8000'
+    // Force fresh fetch every time - no caching at any level
+    const response = await fetch(`${apiUrl}/health/detailed`, {
       headers: {
         'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache',
       },
+      cache: 'no-store',
+      next: { revalidate: 0 }
     })
 
     console.log('Frontend detailed health API: Backend response status:', response.status)
@@ -16,7 +23,13 @@ export async function GET() {
 
     const data = await response.json()
     console.log('Frontend detailed health API: Backend data:', JSON.stringify(data, null, 2))
-    return NextResponse.json(data)
+    return NextResponse.json(data, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    })
   } catch (error) {
     console.error('Error fetching detailed health data:', error)
     return NextResponse.json(

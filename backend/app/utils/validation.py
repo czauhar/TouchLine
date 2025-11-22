@@ -300,6 +300,14 @@ class DataValidator:
         return text.strip()
     
     @staticmethod
+    def sanitize_input(text: str) -> str:
+        """Basic input sanitization by escaping HTML"""
+        import html
+        if not text or not isinstance(text, str):
+            return text
+        return html.escape(text.strip())
+    
+    @staticmethod
     def validate_date_range(start_date: str, end_date: str, max_days: int = 30) -> tuple[str, str]:
         """Validate date range"""
         try:

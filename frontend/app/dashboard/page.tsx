@@ -86,8 +86,11 @@ export default function Dashboard() {
 
   const connectWebSocket = () => {
     try {
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-      const wsUrl = `${protocol}//${window.location.host}/ws/broadcast`
+      // Use backend API URL for WebSocket connection
+      // WebSocket needs to connect directly to backend, not through Next.js API routes
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+      // Convert http/https to ws/wss and append WebSocket path
+      const wsUrl = apiUrl.replace(/^http/, 'ws') + '/ws/broadcast'
       
       const ws = new WebSocket(wsUrl)
       wsRef.current = ws

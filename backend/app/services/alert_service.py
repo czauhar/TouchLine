@@ -1,17 +1,20 @@
 from typing import List, Dict, Optional
 from sqlalchemy.orm import Session
-from app.models import Alert, AlertHistory
-from app.core.exceptions import AlertException
-from app.core.config import settings
+from ..models import Alert, AlertHistory
+from ..core.exceptions import AlertException
+from ..core.config import settings
+from ..utils.logger import log_database_operation
 import json
+import time
 from datetime import datetime
 
 class AlertService:
-    def __init__(self, db: Session):
-        self.db = db
+    """Service for managing alert data and operations"""
     
-    def create_alert(self, alert_data: Dict) -> Alert:
+    @staticmethod
+    def create_alert(db: Session, alert_data: Dict, user_id: int) -> Alert:
         """Create a new alert with validation"""
+        start_time = time.time()
         try:
             # Parse conditions
             conditions = json.loads(alert_data.get('conditions', '{}'))
@@ -26,82 +29,165 @@ class AlertService:
                 team=conditions.get('team', ''),
                 alert_type=conditions.get('condition_type', 'goals'),
                 threshold=float(conditions.get('value', 0)),
-                condition=self._format_condition(conditions),
+                condition=AlertService._format_condition(conditions),
                 time_window=conditions.get('time_window'),
                 user_phone=alert_data.get('user_phone', ''),
-                is_active=True
+                user_id=user_id,
+                is_active=True,
+                created_at=datetime.utcnow()
             )
             
-            self.db.add(alert)
-            self.db.commit()
-            self.db.refresh(alert)
+            db.add(alert)
+            db.commit()
+            db.refresh(alert)
             
+            log_database_operation(
+                "insert", "alerts", True, time.time() - start_time
+            )
             return alert
             
         except json.JSONDecodeError:
+            log_database_operation(
+                "insert", "alerts", False, time.time() - start_time, "Invalid JSON"
+            )
             raise AlertException("Invalid conditions format", 400)
         except Exception as e:
-            self.db.rollback()
+            db.rollback()
+            log_database_operation(
+                "insert", "alerts", False, time.time() - start_time, str(e)
+            )
             raise AlertException(f"Error creating alert: {str(e)}", 500)
     
-    def get_all_alerts(self) -> List[Alert]:
+    @staticmethod
+    def get_all_alerts(db: Session) -> List[Alert]:
         """Get all alerts"""
+        start_time = time.time()
         try:
-            return self.db.query(Alert).all()
+            alerts = db.query(Alert).all()
+            log_database_operation(
+                "select", "alerts", True, time.time() - start_time
+            )
+            return alerts
         except Exception as e:
+            log_database_operation(
+                "select", "alerts", False, time.time() - start_time, str(e)
+            )
             raise AlertException(f"Error fetching alerts: {str(e)}", 500)
     
-    def toggle_alert(self, alert_id: int) -> Alert:
-        """Toggle alert active status"""
+    @staticmethod
+    def get_user_alerts(db: Session, user_id: int) -> List[Alert]:
+        """Get alerts for a specific user"""
+        start_time = time.time()
         try:
-            alert = self.db.query(Alert).filter(Alert.id == alert_id).first()
+            alerts = db.query(Alert).filter(Alert.user_id == user_id).all()
+            log_database_operation(
+                "select", "alerts", True, time.time() - start_time
+            )
+            return alerts
+        except Exception as e:
+            log_database_operation(
+                "select", "alerts", False, time.time() - start_time, str(e)
+            )
+            raise AlertException(f"Error fetching user alerts: {str(e)}", 500)
+    
+    @staticmethod
+    def get_alert_by_id(db: Session, alert_id: int) -> Optional[Alert]:
+        """Get alert by ID"""
+        start_time = time.time()
+        try:
+            alert = db.query(Alert).filter(Alert.id == alert_id).first()
+            log_database_operation(
+                "select", "alerts", True, time.time() - start_time
+            )
+            return alert
+        except Exception as e:
+            log_database_operation(
+                "select", "alerts", False, time.time() - start_time, str(e)
+            )
+            raise
+    
+    @staticmethod
+    def toggle_alert(db: Session, alert_id: int, user_id: int) -> Alert:
+        """Toggle alert active status"""
+        start_time = time.time()
+        try:
+            alert = db.query(Alert).filter(Alert.id == alert_id).first()
             if not alert:
                 raise AlertException("Alert not found", 404)
             
-            alert.is_active = not alert.is_active
-            self.db.commit()
+            if alert.user_id != user_id:
+                raise AlertException("Unauthorized", 403)
             
+            alert.is_active = not alert.is_active
+            db.commit()
+            
+            log_database_operation(
+                "update", "alerts", True, time.time() - start_time
+            )
             return alert
             
         except AlertException:
             raise
         except Exception as e:
-            self.db.rollback()
+            db.rollback()
+            log_database_operation(
+                "update", "alerts", False, time.time() - start_time, str(e)
+            )
             raise AlertException(f"Error toggling alert: {str(e)}", 500)
     
-    def delete_alert(self, alert_id: int) -> bool:
+    @staticmethod
+    def delete_alert(db: Session, alert_id: int, user_id: int) -> bool:
         """Delete an alert"""
+        start_time = time.time()
         try:
-            alert = self.db.query(Alert).filter(Alert.id == alert_id).first()
+            alert = db.query(Alert).filter(Alert.id == alert_id).first()
             if not alert:
                 raise AlertException("Alert not found", 404)
             
-            self.db.delete(alert)
-            self.db.commit()
+            if alert.user_id != user_id:
+                raise AlertException("Unauthorized", 403)
             
+            db.delete(alert)
+            db.commit()
+            
+            log_database_operation(
+                "delete", "alerts", True, time.time() - start_time
+            )
             return True
             
         except AlertException:
             raise
         except Exception as e:
-            self.db.rollback()
+            db.rollback()
+            log_database_operation(
+                "delete", "alerts", False, time.time() - start_time, str(e)
+            )
             raise AlertException(f"Error deleting alert: {str(e)}", 500)
     
-    def get_alert_stats(self) -> Dict:
+    @staticmethod
+    def get_alert_stats(db: Session) -> Dict:
         """Get alert statistics"""
+        start_time = time.time()
         try:
-            total_alerts = self.db.query(Alert).count()
-            active_alerts = self.db.query(Alert).filter(Alert.is_active == True).count()
+            total_alerts = db.query(Alert).count()
+            active_alerts = db.query(Alert).filter(Alert.is_active == True).count()
             
+            log_database_operation(
+                "select", "alerts", True, time.time() - start_time
+            )
             return {
                 "total_alerts": total_alerts,
                 "active_alerts": active_alerts,
                 "inactive_alerts": total_alerts - active_alerts
             }
         except Exception as e:
+            log_database_operation(
+                "select", "alerts", False, time.time() - start_time, str(e)
+            )
             raise AlertException(f"Error fetching alert stats: {str(e)}", 500)
     
-    def _format_condition(self, conditions: Dict) -> str:
+    @staticmethod
+    def _format_condition(conditions: Dict) -> str:
         """Format conditions into readable string"""
         team = conditions.get('team', '')
         condition_type = conditions.get('condition_type', 'goals')

@@ -1,7 +1,6 @@
 import asyncio
 import time
 import psutil
-import sqlite3
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass, asdict
@@ -145,15 +144,22 @@ class HealthMonitor:
             result = db.execute(text("SELECT 1")).fetchone()
             connection_status = result is not None
             
-            # Get table count
+            # Get table count (PostgreSQL)
             tables = db.execute(text("""
-                SELECT name FROM sqlite_master 
-                WHERE type='table' AND name NOT LIKE 'sqlite_%'
+                SELECT table_name 
+                FROM information_schema.tables 
+                WHERE table_schema = 'public' 
+                AND table_type = 'BASE TABLE'
             """)).fetchall()
             table_count = len(tables)
             
-            # Get active connections (approximate)
-            active_connections = 1  # SQLite doesn't track connections like PostgreSQL
+            # Get active connections (PostgreSQL)
+            active_result = db.execute(text("""
+                SELECT count(*) 
+                FROM pg_stat_activity 
+                WHERE datname = current_database()
+            """)).fetchone()
+            active_connections = active_result[0] if active_result else 1
             
             response_time = time.time() - start_time
             
@@ -162,7 +168,7 @@ class HealthMonitor:
                 response_time=response_time,
                 active_connections=active_connections,
                 table_count=table_count,
-                last_backup=None,  # SQLite doesn't have built-in backup tracking
+                last_backup=None,  # Backup tracking can be added later
                 timestamp=datetime.utcnow()
             )
             
@@ -255,8 +261,8 @@ class HealthMonitor:
             from sqlalchemy import text
             db = next(get_db())
             
-            # Get active alerts count
-            active_alerts = db.execute(text("SELECT COUNT(*) FROM alerts WHERE is_active = 1")).scalar()
+            # Get active alerts count (PostgreSQL uses boolean true, not 1)
+            active_alerts = db.execute(text("SELECT COUNT(*) FROM alerts WHERE is_active = true")).scalar()
             
             # Get today's triggered alerts
             today = datetime.utcnow().date()
@@ -265,23 +271,23 @@ class HealthMonitor:
                 WHERE DATE(triggered_at) = :today
             """), {"today": today}).scalar()
             
-            # Get SMS metrics for today
+            # Get SMS metrics for today (PostgreSQL uses boolean true/false, not 1/0)
             sms_sent_today = db.execute(text("""
                 SELECT COUNT(*) FROM alert_history 
-                WHERE DATE(triggered_at) = :today AND sms_sent = 1
+                WHERE DATE(triggered_at) = :today AND sms_sent = true
             """), {"today": today}).scalar()
             
             sms_failed_today = db.execute(text("""
                 SELECT COUNT(*) FROM alert_history 
-                WHERE DATE(triggered_at) = :today AND sms_sent = 0
+                WHERE DATE(triggered_at) = :today AND sms_sent = false
             """), {"today": today}).scalar()
             
-            # Get average response time (approximate)
+            # Get average response time (approximate) - PostgreSQL version
             response_times = db.execute(text("""
-                SELECT AVG(CAST((julianday(triggered_at) - julianday(created_at)) * 86400 AS INTEGER))
+                SELECT AVG(EXTRACT(EPOCH FROM (ah.triggered_at - a.created_at)))
                 FROM alert_history ah
                 JOIN alerts a ON ah.alert_id = a.id
-                WHERE ah.triggered_at >= datetime('now', '-1 hour')
+                WHERE ah.triggered_at >= NOW() - INTERVAL '1 hour'
             """)).scalar()
             
             average_response_time = response_times or 0.0

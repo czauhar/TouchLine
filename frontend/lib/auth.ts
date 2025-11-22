@@ -117,7 +117,9 @@ class ApiClient {
   private baseUrl: string
   private accessToken: string | null = null
 
-  constructor(baseUrl: string = 'http://localhost:8000') {
+  constructor(baseUrl: string = '') {
+    // Use empty string for relative URLs - this will use frontend API proxy routes
+    // Frontend API routes will handle calling the backend with proper auth
     this.baseUrl = baseUrl
   }
 
@@ -135,24 +137,39 @@ class ApiClient {
   }
 
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-    const url = `${this.baseUrl}${endpoint}`
+    // Use relative URL to hit frontend API proxy routes instead of backend directly
+    // Frontend routes handle authentication via NextAuth session
+    const url = this.baseUrl ? `${this.baseUrl}${endpoint}` : endpoint
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       ...(options.headers as Record<string, string> || {}),
     }
 
-    const accessToken = this.getAccessToken()
-    if (accessToken) {
-      headers.Authorization = `Bearer ${accessToken}`
+    // For frontend proxy routes, don't add auth header - session is handled server-side
+    // Only add auth header if calling backend directly (when baseUrl is set)
+    if (this.baseUrl) {
+      const accessToken = this.getAccessToken()
+      if (accessToken) {
+        headers.Authorization = `Bearer ${accessToken}`
+      }
     }
 
     const response = await fetch(url, {
       ...options,
       headers,
+      credentials: 'include', // Include cookies for session
     })
 
     if (!response.ok) {
-      throw new Error(`API request failed: ${response.statusText}`)
+      // Try to get detailed error message from backend
+      let errorMessage = response.statusText
+      try {
+        const errorData = await response.json()
+        errorMessage = errorData.detail || errorData.error || response.statusText
+      } catch {
+        // If JSON parsing fails, use status text
+      }
+      throw new Error(errorMessage)
     }
 
     return response.json()
@@ -268,4 +285,6 @@ class ApiClient {
   }
 }
 
-export const apiClient = new ApiClient(process.env.NEXT_PUBLIC_API_URL || '') 
+// Create apiClient with empty baseUrl to use frontend API proxy routes
+// Frontend routes handle authentication via NextAuth session server-side
+export const apiClient = new ApiClient('') 

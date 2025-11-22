@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from app.sports_api import sports_api
-from app.services import MatchService
+from app.services.match_service import MatchService
 from app.database import get_db
 from app.data_service import data_service
 from sqlalchemy.orm import Session
@@ -75,7 +75,11 @@ async def get_live_matches():
         
         return {"matches": matches, "count": len(matches)}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        # Log error but return empty matches instead of failing
+        from ..utils.logger import log_system_event
+        log_system_event("matches_fetch_error", {"error": str(e), "endpoint": "live"})
+        # Return empty matches array - frontend will handle empty state gracefully
+        return {"matches": [], "count": 0}
 
 @router.get("/today")
 async def get_todays_matches():
@@ -144,7 +148,11 @@ async def get_todays_matches():
         
         return {"matches": matches, "count": len(matches)}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        # Log error but return empty matches instead of failing
+        from ..utils.logger import log_system_event
+        log_system_event("matches_fetch_error", {"error": str(e), "endpoint": "today"})
+        # Return empty matches array - frontend will handle empty state gracefully
+        return {"matches": [], "count": 0}
 
 @router.get("/{fixture_id}/statistics")
 async def get_match_statistics(fixture_id: int):

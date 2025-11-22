@@ -4,7 +4,7 @@ from app.database import get_db
 from app.models import User
 from app.schemas import UserUpdate, UserBase
 from app.auth import AuthService, get_current_user
-from app.services import UserService
+from app.services.user_service import UserService
 from app.sms_service import sms_service
 from app.sports_api import sports_api
 from app.alert_engine import match_monitor
@@ -39,10 +39,33 @@ async def health_check():
 async def detailed_health_check():
     """Detailed health check with comprehensive metrics"""
     try:
-        # Generate a new health report
+        # Generate a new health report (this adds it to history)
         health_report = await health_monitor.generate_health_report()
-        # Return the summary
-        return health_monitor.get_health_summary()
+        # Return the summary from the report we just generated, not from history
+        return {
+            "status": health_report.overall_status.value,
+            "last_check": health_report.timestamp.isoformat(),
+            "system": {
+                "cpu_percent": health_report.system_metrics.cpu_percent,
+                "memory_percent": health_report.system_metrics.memory_percent,
+                "disk_percent": health_report.system_metrics.disk_percent
+            },
+            "database": {
+                "connection_status": health_report.database_metrics.connection_status,
+                "response_time_ms": round(health_report.database_metrics.response_time * 1000, 2)
+            },
+            "api": {
+                "sports_api_status": health_report.api_metrics.sports_api_status,
+                "sms_service_status": health_report.api_metrics.sms_service_status,
+                "error_count": health_report.api_metrics.error_count
+            },
+            "alerts": {
+                "active_alerts": health_report.alert_metrics.active_alerts,
+                "alerts_triggered_today": health_report.alert_metrics.alerts_triggered_today,
+                "sms_sent_today": health_report.alert_metrics.sms_sent_today,
+                "sms_failed_today": health_report.alert_metrics.sms_failed_today
+            }
+        }
     except Exception as e:
         return {
             "status": "unhealthy",

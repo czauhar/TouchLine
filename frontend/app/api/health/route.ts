@@ -3,7 +3,8 @@ import { NextResponse } from 'next/server'
 export async function GET() {
   try {
     console.log('Frontend health API: Fetching from backend...')
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/health/detailed`, {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://64.225.56.165:8000'
+    const response = await fetch(`${apiUrl}/health/detailed`, {
       headers: {
         'Content-Type': 'application/json',
       },

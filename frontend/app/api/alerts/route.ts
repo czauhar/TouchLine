@@ -1,44 +1,42 @@
 import { NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth/next'
+import { authOptions } from '../../../lib/auth'
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://68.183.59.147:8000'}/api/alerts/`, {
+    // Get session from NextAuth in App Router
+    const session = await getServerSession(authOptions)
+    
+    if (!session || !(session as any).accessToken) {
+      // Return empty alerts array instead of error - frontend will handle gracefully
+      return NextResponse.json({
+        alerts: [],
+        count: 0
+      })
+    }
+    
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://64.225.56.165:8000'
+    const response = await fetch(`${apiUrl}/api/alerts`, {
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${(session as any).accessToken}`
       },
+      cache: 'no-store',
     })
 
     if (!response.ok) {
-      // If backend returns 403, return mock data for now
-      if (response.status === 403) {
+      // If unauthorized or forbidden, return empty alerts array
+      if (response.status === 401 || response.status === 403) {
         return NextResponse.json({
-          alerts: [
-            {
-              id: 1,
-              name: "High Scoring Matches",
-              alert_type: "goals",
-              team: "any",
-              condition: "Alert when any team scores 3+ goals",
-              threshold: 3,
-              is_active: true,
-              user_id: 1,
-              created_at: new Date().toISOString()
-            },
-            {
-              id: 2,
-              name: "Close Matches",
-              alert_type: "score_difference",
-              team: "any",
-              condition: "Alert when score difference is 1 goal or less",
-              threshold: 1,
-              is_active: true,
-              user_id: 1,
-              created_at: new Date().toISOString()
-            }
-          ]
+          alerts: [],
+          count: 0,
+          error: 'Authentication required'
         })
       }
-      throw new Error(`Backend responded with status: ${response.status}`)
+      
+      // Get error details from backend
+      const errorData = await response.json().catch(() => ({}))
+      throw new Error(errorData.detail || `Backend responded with status: ${response.status}`)
     }
 
     const data = await response.json()
@@ -49,30 +47,8 @@ export async function GET() {
       { 
         error: 'Failed to fetch alerts',
         details: error instanceof Error ? error.message : 'Unknown error',
-        alerts: [
-          {
-            id: 1,
-            name: "High Scoring Matches",
-            alert_type: "goals",
-            team: "any",
-            condition: "Alert when any team scores 3+ goals",
-            threshold: 3,
-            is_active: true,
-            user_id: 1,
-            created_at: new Date().toISOString()
-          },
-          {
-            id: 2,
-            name: "Close Matches",
-            alert_type: "score_difference",
-            team: "any",
-            condition: "Alert when score difference is 1 goal or less",
-            threshold: 1,
-            is_active: true,
-            user_id: 1,
-            created_at: new Date().toISOString()
-          }
-        ]
+        alerts: [],
+        count: 0
       },
       { status: 500 }
     )

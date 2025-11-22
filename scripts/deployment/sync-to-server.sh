@@ -66,9 +66,35 @@ ssh $SERVER_USER@$SERVER_IP << EOF
         git checkout $REMOTE_BRANCH 2>/dev/null || git checkout -b $REMOTE_BRANCH origin/$REMOTE_BRANCH
     fi
     
+    # Save important files before reset
+    echo "💾 Backing up environment files..."
+    if [ -f backend/.env ]; then
+        cp backend/.env backend/.env.backup.$(date +%Y%m%d_%H%M%S)
+    fi
+    if [ -f frontend/.env.local ]; then
+        cp frontend/.env.local frontend/.env.local.backup.$(date +%Y%m%d_%H%M%S)
+    fi
+    
     # Reset to match remote (discard local changes)
     echo "🔄 Resetting to match remote repository..."
     git reset --hard origin/$REMOTE_BRANCH
+    
+    # Restore environment files if they exist
+    echo "🔄 Restoring environment files..."
+    if [ -f backend/.env.backup.* ]; then
+        RESTORED_ENV=\$(ls -t backend/.env.backup.* | head -1)
+        if [ -f "\$RESTORED_ENV" ]; then
+            cp "\$RESTORED_ENV" backend/.env
+            echo "✅ Restored backend/.env"
+        fi
+    fi
+    if [ -f frontend/.env.local.backup.* ]; then
+        RESTORED_ENV=\$(ls -t frontend/.env.local.backup.* | head -1)
+        if [ -f "\$RESTORED_ENV" ]; then
+            cp "\$RESTORED_ENV" frontend/.env.local
+            echo "✅ Restored frontend/.env.local"
+        fi
+    fi
     
     # Update backend dependencies if needed
     echo "🐍 Checking backend dependencies..."

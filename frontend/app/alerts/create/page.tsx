@@ -31,7 +31,10 @@ import {
   Flag,
   Timer,
   Gauge,
-  Layers
+  Layers,
+  ChevronLeft,
+  ChevronRight,
+  Check
 } from 'lucide-react'
 
 interface Match {
@@ -151,6 +154,7 @@ export default function CreateAlertPage() {
   const [saving, setSaving] = useState(false)
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null)
   const [showPreview, setShowPreview] = useState(false)
+  const [currentStep, setCurrentStep] = useState(1) // Wizard steps: 1=Basic, 2=Conditions, 3=Notifications, 4=Review
   
   const [form, setForm] = useState<AlertForm>({
     name: '',
@@ -262,6 +266,33 @@ export default function CreateAlertPage() {
     return null
   }
 
+  const validateStep = (step: number): boolean => {
+    switch (step) {
+      case 1: // Basic Info
+        return form.name.trim().length > 0
+      case 2: // Conditions
+        return form.conditions.length > 0 && form.conditions.every(c => c.description.trim().length > 0)
+      case 3: // Notifications
+        return true // No required fields in notifications step
+      case 4: // Review
+        return validateForm() === null
+      default:
+        return false
+    }
+  }
+
+  const nextStep = () => {
+    if (currentStep < 4 && validateStep(currentStep)) {
+      setCurrentStep(currentStep + 1)
+    }
+  }
+
+  const prevStep = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1)
+    }
+  }
+
   const getFieldError = (field: string) => {
     if (field === 'name' && !form.name.trim()) return 'Alert name is required'
     if (field === 'conditions' && form.conditions.length === 0) return 'At least one condition is required'
@@ -331,50 +362,76 @@ export default function CreateAlertPage() {
         <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl animate-float" style={{animationDelay: '2s'}}></div>
       </div>
 
-      {/* Enhanced Header */}
+      {/* Progress Bar */}
       <div className="relative bg-white/10 backdrop-blur-xl border-b border-white/20 shadow-2xl">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-6">
-              <Link href="/alerts" className="text-gray-400 hover:text-white transition-all duration-300 hover:scale-110">
-                <ArrowLeft className="w-6 h-6" />
-              </Link>
-              <div>
-                <h1 className="text-4xl font-black text-gradient mb-2">Create Advanced Alert</h1>
-                <p className="text-gray-300 text-lg">Build sophisticated alerts with detailed metrics</p>
-              </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex items-center justify-between mb-6">
+            <Link href="/alerts" className="text-gray-400 hover:text-white transition-all duration-300 hover:scale-110">
+              <ArrowLeft className="w-6 h-6" />
+            </Link>
+            <div className="flex-1 max-w-4xl mx-8">
+              <h1 className="text-3xl font-black text-gradient mb-2 text-center">Create Alert</h1>
+              <p className="text-gray-300 text-center">Step {currentStep} of 4</p>
             </div>
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={() => setShowPreview(true)}
-                className="btn-secondary flex items-center"
-              >
-                <Eye className="w-5 h-5 mr-2" />
-                Preview
-              </button>
-              <button
-                onClick={createAlert}
-                disabled={saving}
-                className="btn-success flex items-center disabled:opacity-50"
-              >
-                {saving ? (
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                ) : (
-                  <Save className="w-5 h-5 mr-2" />
+            <button
+              onClick={() => setShowPreview(true)}
+              className="btn-secondary flex items-center"
+            >
+              <Eye className="w-5 h-5 mr-2" />
+              Preview
+            </button>
+          </div>
+          
+          {/* Step Indicators */}
+          <div className="flex items-center justify-between max-w-4xl mx-auto">
+            {[
+              { step: 1, title: 'Basic Info', icon: Target },
+              { step: 2, title: 'Conditions', icon: Layers },
+              { step: 3, title: 'Notifications', icon: Bell },
+              { step: 4, title: 'Review', icon: Check }
+            ].map(({ step, title, icon: Icon }, index) => (
+              <div key={step} className="flex items-center flex-1">
+                <div
+                  className={`flex flex-col items-center justify-center w-full ${
+                    step < currentStep ? 'text-green-500' :
+                    step === currentStep ? 'text-blue-500' :
+                    'text-gray-500'
+                  }`}
+                >
+                  <div
+                    className={`w-12 h-12 rounded-full border-2 flex items-center justify-center mb-2 transition-all ${
+                      step < currentStep
+                        ? 'bg-green-500 border-green-500 text-white'
+                        : step === currentStep
+                        ? 'bg-blue-600 border-blue-600 text-white'
+                        : 'bg-transparent border-gray-600 text-gray-400'
+                    }`}
+                  >
+                    {step < currentStep ? (
+                      <Check className="w-6 h-6" />
+                    ) : (
+                      <Icon className="w-6 h-6" />
+                    )}
+                  </div>
+                  <span className="text-xs font-medium hidden md:block">{title}</span>
+                </div>
+                {index < 3 && (
+                  <div
+                    className={`hidden md:block h-1 flex-1 mx-2 rounded ${
+                      step < currentStep ? 'bg-green-500' : 'bg-gray-700'
+                    }`}
+                  />
                 )}
-                {saving ? 'Creating...' : 'Create Alert'}
-              </button>
-            </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Form */}
-          <div className="lg:col-span-2 space-y-8">
-            {/* Enhanced Basic Information */}
-            <div className="card-elevated p-8 animate-slide-in-up">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Step 1: Basic Information */}
+        {currentStep === 1 && (
+          <div className="card-elevated p-8 animate-slide-in-up">
               <h2 className="text-2xl font-bold text-white mb-8 flex items-center">
                 <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl flex items-center justify-center mr-4">
                   <Target className="w-5 h-5 text-white" />
@@ -422,10 +479,62 @@ export default function CreateAlertPage() {
                   placeholder="Describe what this alert monitors..."
                 />
               </div>
-            </div>
 
-            {/* Enhanced Conditions */}
-            <div className="card-elevated p-8 animate-slide-in-up" style={{animationDelay: '0.1s'}}>
+              {/* Match Selection in Step 1 */}
+              <div className="mt-8">
+                <label className="block text-lg font-semibold text-gray-300 mb-3">Match Selection (Optional)</label>
+                {selectedMatch ? (
+                  <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+                    <h4 className="font-medium text-white mb-2">Selected Match</h4>
+                    <div className="text-sm text-gray-300 space-y-1">
+                      <p><strong>{selectedMatch.home_team}</strong> vs <strong>{selectedMatch.away_team}</strong></p>
+                      <p>{selectedMatch.league}</p>
+                      <p>{formatTime(selectedMatch.start_time)}</p>
+                      <p className="text-blue-400">{selectedMatch.status}</p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setSelectedMatch(null)
+                        setForm(prev => ({ ...prev, matchId: undefined }))
+                      }}
+                      className="mt-3 text-sm text-red-400 hover:text-red-300"
+                    >
+                      Clear Selection
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-3 max-h-64 overflow-y-auto">
+                    <p className="text-sm text-gray-300 mb-3">Choose a specific match (optional):</p>
+                    {matches.slice(0, 10).map(match => (
+                      <button
+                        key={match.id}
+                        onClick={() => {
+                          setSelectedMatch(match)
+                          setForm(prev => ({
+                            ...prev,
+                            matchId: match.id,
+                            name: `${match.home_team} vs ${match.away_team} Alert`,
+                            team: match.home_team
+                          }))
+                        }}
+                        className="w-full text-left p-3 bg-white/5 rounded-lg hover:bg-white/10 transition text-sm"
+                      >
+                        <div className="font-medium text-white">{match.home_team} vs {match.away_team}</div>
+                        <div className="text-gray-400">{match.league} • {formatTime(match.start_time)}</div>
+                      </button>
+                    ))}
+                    {matches.length === 0 && (
+                      <p className="text-sm text-gray-400 text-center py-4">No matches available</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+        )}
+
+        {/* Step 2: Conditions */}
+        {currentStep === 2 && (
+          <div className="card-elevated p-8 animate-slide-in-up" style={{animationDelay: '0.1s'}}>
               <div className="flex items-center justify-between mb-8">
                 <h2 className="text-2xl font-bold text-white flex items-center">
                   <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-blue-500 rounded-xl flex items-center justify-center mr-4">
@@ -614,15 +723,19 @@ export default function CreateAlertPage() {
                 </div>
               )}
             </div>
+        )}
 
-            {/* Notification Settings */}
-            <div className="bg-white/10 backdrop-blur-xl rounded-xl p-6 border border-white/20">
-              <h2 className="text-xl font-bold text-white mb-6 flex items-center">
-                <Bell className="w-5 h-5 mr-2" />
-                Notification Settings
-              </h2>
+        {/* Step 3: Notifications */}
+        {currentStep === 3 && (
+          <div className="card-elevated p-8 animate-slide-in-up">
+            <h2 className="text-2xl font-bold text-white mb-8 flex items-center">
+              <div className="w-10 h-10 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-xl flex items-center justify-center mr-4">
+                <Bell className="w-5 h-5 text-white" />
+              </div>
+              Notification Settings
+            </h2>
               
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">Notification Type</label>
                   <select
@@ -662,10 +775,147 @@ export default function CreateAlertPage() {
                 </div>
               </div>
             </div>
+        )}
+
+        {/* Step 4: Review */}
+        {currentStep === 4 && (
+          <div className="card-elevated p-8 animate-slide-in-up">
+            <h2 className="text-2xl font-bold text-white mb-6 flex items-center">
+              <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center mr-4">
+                <Check className="w-5 h-5 text-white" />
+              </div>
+              Review Alert
+            </h2>
+            
+            <div className="space-y-6">
+              <div className="bg-white/5 rounded-lg p-6 border border-white/10">
+                <h3 className="text-lg font-semibold text-white mb-4">Alert Summary</h3>
+                <div className="space-y-3 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Name:</span>
+                    <span className="text-white font-medium">{form.name || 'Unnamed Alert'}</span>
+                  </div>
+                  {form.description && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Description:</span>
+                      <span className="text-white">{form.description}</span>
+                    </div>
+                  )}
+                  {form.team && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Team:</span>
+                      <span className="text-white">{form.team}</span>
+                    </div>
+                  )}
+                  {selectedMatch && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Match:</span>
+                      <span className="text-white">{selectedMatch.home_team} vs {selectedMatch.away_team}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Logic:</span>
+                    <span className="text-white">{form.logicOperator === 'AND' ? 'ALL conditions' : 'ANY condition'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Notifications:</span>
+                    <span className="text-white">{form.notificationType.toUpperCase()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Priority:</span>
+                    <span className="text-white capitalize">{form.priority}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Cooldown:</span>
+                    <span className="text-white">{form.cooldown} minutes</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white/5 rounded-lg p-6 border border-white/10">
+                <h3 className="text-lg font-semibold text-white mb-4">Conditions ({form.conditions.length})</h3>
+                {form.conditions.length === 0 ? (
+                  <p className="text-gray-400">No conditions defined</p>
+                ) : (
+                  <div className="space-y-3">
+                    {form.conditions.map((condition, index) => (
+                      <div key={condition.id} className="bg-white/5 rounded-lg p-4 border border-white/10">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium text-white">Condition {index + 1}</span>
+                          {condition.description && (
+                            <span className="text-xs text-gray-400">{condition.description}</span>
+                          )}
+                        </div>
+                        <div className="text-sm text-gray-300">
+                          {condition.metric.startsWith('player_') && condition.player_name
+                            ? `${condition.player_name} ${condition.metric.replace('player_', '')} ${getOperatorSymbol(condition.operator)} ${condition.value}`
+                            : `${condition.team} team ${condition.metric} ${getOperatorSymbol(condition.operator)} ${condition.value}`
+                          }
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Navigation Buttons */}
+        <div className="flex items-center justify-between mt-8 pt-6 border-t border-white/20">
+          <button
+            onClick={currentStep === 1 ? () => router.push('/alerts') : prevStep}
+            className="flex items-center px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors"
+          >
+            <ChevronLeft className="w-5 h-5 mr-2" />
+            {currentStep === 1 ? 'Cancel' : 'Back'}
+          </button>
+
+          <div className="flex items-center space-x-2 text-sm text-gray-400">
+            <span>Step {currentStep} of 4</span>
           </div>
 
-          {/* Sidebar */}
-          <div className="space-y-6">
+          {currentStep === 4 ? (
+            <button
+              onClick={createAlert}
+              disabled={!validateStep(4) || saving}
+              className="flex items-center px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {saving ? (
+                <>
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                  Creating...
+                </>
+              ) : (
+                <>
+                  <Check className="w-5 h-5 mr-2" />
+                  Create Alert
+                </>
+              )}
+            </button>
+          ) : (
+            <button
+              onClick={nextStep}
+              disabled={!validateStep(currentStep)}
+              className="flex items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Next
+              <ChevronRight className="w-5 h-5 ml-2" />
+            </button>
+          )}
+        </div>
+
+        {/* Validation Message */}
+        {!validateStep(currentStep) && (
+          <div className="mt-4 flex items-center text-yellow-400 text-sm bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4">
+            <AlertTriangle className="w-4 h-4 mr-2" />
+            Please complete all required fields to continue
+          </div>
+        )}
+
+        {/* Sidebar - Only show in relevant steps */}
+        {currentStep === 2 && (
+          <div className="fixed right-8 top-1/2 transform -translate-y-1/2 space-y-6 max-w-xs">
             {/* Match Selection */}
             <div className="bg-white/10 backdrop-blur-xl rounded-xl p-6 border border-white/20">
               <h3 className="text-lg font-bold text-white mb-4">Match Selection</h3>

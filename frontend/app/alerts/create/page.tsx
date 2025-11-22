@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { apiClient } from '../../../lib/auth'
 import Link from 'next/link'
+import toast from 'react-hot-toast'
 import { 
   Target, 
   ArrowLeft, 

@@ -1077,7 +1077,8 @@ export default function CreateAlertPage() {
               </div>
             </div>
           </div>
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Preview Modal */}

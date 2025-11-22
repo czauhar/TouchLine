@@ -249,13 +249,28 @@ export default function CreateAlertPage() {
     if (!form.name.trim()) return 'Alert name is required'
     if (form.conditions.length === 0) return 'At least one condition is required'
     if (form.conditions.some(c => !c.description.trim())) return 'All conditions must have descriptions'
+    // Validate condition values
+    for (const condition of form.conditions) {
+      if (typeof condition.value === 'number' && isNaN(condition.value)) {
+        return `Condition "${condition.metric}" has an invalid value`
+      }
+      if (condition.metric.startsWith('player_') && !condition.player_name && !condition.player_id) {
+        return `Player-specific metric "${condition.metric}" requires a player name or ID`
+      }
+    }
+    return null
+  }
+
+  const getFieldError = (field: string) => {
+    if (field === 'name' && !form.name.trim()) return 'Alert name is required'
+    if (field === 'conditions' && form.conditions.length === 0) return 'At least one condition is required'
     return null
   }
 
   const createAlert = async () => {
     const error = validateForm()
     if (error) {
-      alert(error)
+      toast.error(error)
       return
     }
 
@@ -276,10 +291,11 @@ export default function CreateAlertPage() {
       }
       
       await apiClient.createAlert(alertData)
+      toast.success('Alert created successfully!')
       router.push('/alerts')
     } catch (error) {
       console.error('Error creating alert:', error)
-      alert('Failed to create alert. Please try again.')
+      toast.error('Failed to create alert. Please try again.')
     } finally {
       setSaving(false)
     }
@@ -367,14 +383,20 @@ export default function CreateAlertPage() {
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div>
-                  <label className="block text-lg font-semibold text-gray-300 mb-3">Alert Name</label>
+                  <label className="block text-lg font-semibold text-gray-300 mb-3">
+                    Alert Name
+                    <span className="text-red-400 ml-1">*</span>
+                  </label>
                   <input
                     type="text"
                     value={form.name}
                     onChange={(e) => setForm(prev => ({ ...prev, name: e.target.value }))}
-                    className="input-primary text-lg"
+                    className={`input-primary text-lg ${!form.name.trim() ? 'border-red-500/50' : ''}`}
                     placeholder="Enter alert name..."
                   />
+                  {!form.name.trim() && (
+                    <p className="mt-1 text-sm text-red-400">Alert name is required</p>
+                  )}
                 </div>
                 
                 <div>
@@ -430,15 +452,18 @@ export default function CreateAlertPage() {
               </div>
 
               {form.conditions.length === 0 ? (
-                <div className="text-center py-8">
+                <div className="text-center py-8 border-2 border-dashed border-gray-600 rounded-lg">
                   <Target className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-300 mb-4">No conditions added yet</p>
+                  <p className="text-gray-300 mb-2">No conditions added yet</p>
+                  <p className="text-gray-400 text-sm mb-4">Add at least one condition to create your alert</p>
                   <button
                     onClick={addCondition}
-                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+                    className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-medium"
                   >
+                    <Plus className="w-4 h-4 inline mr-2" />
                     Add Your First Condition
                   </button>
+                  <p className="text-red-400 text-sm mt-2">⚠️ At least one condition is required</p>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -456,22 +481,33 @@ export default function CreateAlertPage() {
 
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         <div>
-                          <label className="block text-sm font-medium text-gray-300 mb-2">Metric</label>
+                          <label className="block text-sm font-medium text-gray-300 mb-2">
+                            Metric
+                            {condition.metric && (
+                              <span className="ml-2 text-xs text-gray-400 font-normal" title={getMetricDescription(condition.metric)}>
+                                (ℹ️ {getMetricDescription(condition.metric)})
+                              </span>
+                            )}
+                          </label>
                           <select
                             value={condition.metric}
                             onChange={(e) => updateCondition(condition.id, 'metric', e.target.value)}
                             className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            title={getMetricDescription(condition.metric)}
                           >
                             {Object.entries(METRIC_CATEGORIES).map(([category, metrics]) => (
                               <optgroup key={category} label={category}>
                                 {metrics.map(metric => (
-                                  <option key={metric.value} value={metric.value}>
+                                  <option key={metric.value} value={metric.value} title={metric.description}>
                                     {metric.label}
                                   </option>
                                 ))}
                               </optgroup>
                             ))}
                           </select>
+                          {condition.metric && (
+                            <p className="mt-1 text-xs text-gray-400">{getMetricDescription(condition.metric)}</p>
+                          )}
                         </div>
 
                         <div>
@@ -547,14 +583,22 @@ export default function CreateAlertPage() {
                       )}
 
                       <div className="mt-4">
-                        <label className="block text-sm font-medium text-gray-300 mb-2">Description</label>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                          Description
+                          <span className="text-red-400 ml-1">*</span>
+                        </label>
                         <input
                           type="text"
                           value={condition.description}
                           onChange={(e) => updateCondition(condition.id, 'description', e.target.value)}
-                          className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className={`w-full px-3 py-2 bg-white/10 border rounded text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                            !condition.description.trim() ? 'border-red-500/50' : 'border-white/20'
+                          }`}
                           placeholder={`e.g., ${getMetricDescription(condition.metric)}`}
                         />
+                        {!condition.description.trim() && (
+                          <p className="mt-1 text-xs text-red-400">Description is required</p>
+                        )}
                       </div>
 
                       <div className="mt-4 p-3 bg-white/5 rounded text-sm text-gray-300">

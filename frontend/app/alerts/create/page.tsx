@@ -293,12 +293,6 @@ export default function CreateAlertPage() {
     }
   }
 
-  const getFieldError = (field: string) => {
-    if (field === 'name' && !form.name.trim()) return 'Alert name is required'
-    if (field === 'conditions' && form.conditions.length === 0) return 'At least one condition is required'
-    return null
-  }
-
   const createAlert = async () => {
     const error = validateForm()
     if (error) {

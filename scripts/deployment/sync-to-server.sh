@@ -56,16 +56,6 @@ ssh $SERVER_USER@$SERVER_IP << EOF
     echo "📥 Fetching latest changes..."
     git fetch origin
     
-    # Check current branch
-    CURRENT_BRANCH=\$(git branch --show-current)
-    echo "🌿 Current branch: \$CURRENT_BRANCH"
-    
-    # Switch to target branch if needed
-    if [ "\$CURRENT_BRANCH" != "$REMOTE_BRANCH" ]; then
-        echo "🔄 Switching to branch: $REMOTE_BRANCH"
-        git checkout $REMOTE_BRANCH 2>/dev/null || git checkout -b $REMOTE_BRANCH origin/$REMOTE_BRANCH
-    fi
-    
     # Save important files before reset
     echo "💾 Backing up environment files..."
     if [ -f backend/.env ]; then
@@ -75,9 +65,25 @@ ssh $SERVER_USER@$SERVER_IP << EOF
         cp frontend/.env.local frontend/.env.local.backup.$(date +%Y%m%d_%H%M%S)
     fi
     
-    # Reset to match remote (discard local changes)
+    # Check current branch
+    CURRENT_BRANCH=\$(git branch --show-current)
+    echo "🌿 Current branch: \$CURRENT_BRANCH"
+    
+    # Clean up all local changes and untracked files BEFORE switching
+    echo "🧹 Cleaning up local changes..."
+    git reset --hard HEAD
+    git clean -fd
+    
+    # Switch to target branch if needed
+    if [ "\$CURRENT_BRANCH" != "$REMOTE_BRANCH" ]; then
+        echo "🔄 Switching to branch: $REMOTE_BRANCH"
+        git checkout $REMOTE_BRANCH 2>/dev/null || git checkout -b $REMOTE_BRANCH origin/$REMOTE_BRANCH
+    fi
+    
+    # Reset to match remote (discard any remaining local changes)
     echo "🔄 Resetting to match remote repository..."
     git reset --hard origin/$REMOTE_BRANCH
+    git clean -fd
     
     # Restore environment files if they exist
     echo "🔄 Restoring environment files..."

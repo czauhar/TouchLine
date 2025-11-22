@@ -523,7 +523,7 @@ export default function CreateAlertPage() {
                   </div>
                 )}
               </div>
-            </div>
+          </div>
         )}
 
         {/* Step 2: Conditions */}
